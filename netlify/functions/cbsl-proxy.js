@@ -32,13 +32,42 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
       const cells = $(this).find('td');
       console.log(`Row ${index}: ${cells.length} cells`);
       
-      if (cells.length >= 6) {
+      if (cells.length >= 3) {
+        const dateCell = $(cells[0]).text().trim();
+        // For this table structure: [Date] [Buy Rate (LKR)] [Sell Rate (LKR)]
+        // There's no currency column, so we use the requested currency
+        const buyingRateCell = $(cells[1]).text().trim();
+        const sellingRateCell = $(cells[2]).text().trim();
+        
+        console.log(`Row ${index}: Date="${dateCell}", BuyRate="${buyingRateCell}", SellRate="${sellingRateCell}"`);
+        
+        if (dateCell && buyingRateCell && sellingRateCell) {
+          const parsedDate = parseDate(dateCell);
+          const buyingRate = parseFloat(buyingRateCell.replace(/,/g, ''));
+          const sellingRate = parseFloat(sellingRateCell.replace(/,/g, ''));
+          
+          console.log(`Processing row ${index}: parsedDate=${parsedDate}, buyingRate=${buyingRate}, sellingRate=${sellingRate}`);
+          
+          if (parsedDate && !isNaN(buyingRate) && !isNaN(sellingRate)) {
+            console.log(`Valid data found for ${targetCurrency} on ${parsedDate}`);
+            rates.push({
+              date: parsedDate,
+              currency: targetCurrency, // Use the requested currency since it's not in the table
+              buyingRate: buyingRate,
+              sellingRate: sellingRate,
+              source: 'Central Bank of Sri Lanka (CBSL)',
+              averageRate: (buyingRate + sellingRate) / 2
+            });
+          }
+        }
+      } else if (cells.length >= 6) {
+        // Fallback: Handle the old format with currency column if it exists
         const dateCell = $(cells[0]).text().trim();
         const currencyCell = $(cells[1]).text().trim();
         const buyingRateCell = $(cells[4]).text().trim();
         const sellingRateCell = $(cells[5]).text().trim();
         
-        console.log(`Row ${index}: Date="${dateCell}", Currency="${currencyCell}", Buying="${buyingRateCell}", Selling="${sellingRateCell}"`);
+        console.log(`Row ${index} (old format): Date="${dateCell}", Currency="${currencyCell}", Buying="${buyingRateCell}", Selling="${sellingRateCell}"`);
         
         if (currencyCell === targetCurrency && dateCell && buyingRateCell && sellingRateCell) {
           const parsedDate = parseDate(dateCell);
@@ -92,21 +121,47 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
 
 // Parse date from CBSL format
 const parseDate = (dateStr) => {
-  if (!dateStr) return null;
+  if (!dateStr) {
+    console.log('parseDate: empty dateStr');
+    return null;
+  }
+  
+  console.log('parseDate: attempting to parse:', dateStr);
   
   try {
+    // Clean the date string
+    const cleanDateStr = dateStr.trim();
+    
     // Handle different date formats from CBSL
-    if (dateStr.includes('/')) {
-      const parts = dateStr.split('/');
+    if (cleanDateStr.includes('/')) {
+      const parts = cleanDateStr.split('/');
       if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
+        // Assume DD/MM/YYYY format
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // JavaScript months are 0-based
+        const year = parseInt(parts[2]);
+        const parsedDate = new Date(year, month, day);
+        console.log('parseDate: parsed DD/MM/YYYY format:', parsedDate);
+        return parsedDate;
       }
-    } else if (dateStr.includes('-')) {
-      return new Date(dateStr);
+    } else if (cleanDateStr.includes('-')) {
+      // Handle YYYY-MM-DD format
+      const parsedDate = new Date(cleanDateStr);
+      console.log('parseDate: parsed YYYY-MM-DD format:', parsedDate);
+      return parsedDate;
+    } else if (cleanDateStr.match(/^\d{1,2}\s+\w+\s+\d{4}$/)) {
+      // Handle "DD Month YYYY" format (e.g., "11 August 2025")
+      const parsedDate = new Date(cleanDateStr);
+      console.log('parseDate: parsed DD Month YYYY format:', parsedDate);
+      return parsedDate;
     }
     
-    return new Date(dateStr);
+    // Try direct parsing as fallback
+    const parsedDate = new Date(cleanDateStr);
+    console.log('parseDate: fallback parsing result:', parsedDate);
+    return isNaN(parsedDate.getTime()) ? null : parsedDate;
   } catch (error) {
+    console.log('parseDate: error parsing', dateStr, ':', error);
     return null;
   }
 };
