@@ -175,17 +175,6 @@ exports.handler = async (event, context) => {
     
     console.log('Form data being sent to CBSL:', formData.toString());
     
-    const formData = new URLSearchParams();
-    formData.append('lookupPage', 'lookup_daily_exchange_rates.php');
-    formData.append('startRange', '2006-11-11');
-    formData.append('rangeType', 'dates');
-    formData.append('txtStart', startDate);
-    formData.append('txtEnd', endDate);
-    formData.append('chk_cur[]', currencyMapping);
-    formData.append('submit_button', 'Submit');
-    
-    console.log('Form data being sent to CBSL:', formData.toString());
-    
     // Make request to CBSL
     const response = await axios.post(
       'https://www.cbsl.gov.lk/cbsl_custom/exratestt/exrates_resultstt.php',
