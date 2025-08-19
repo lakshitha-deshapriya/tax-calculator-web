@@ -42,7 +42,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './dist/tax-calculator-web'
+        path: './dist/tax-calculator-web/browser'
 
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main'
