@@ -17,7 +17,7 @@ export interface ExchangeRateData {
 })
 export class ExchangeRateProductionService {
   // This will be set to your Netlify site URL when deployed
-  private readonly baseUrl = 'https://your-netlify-site-url.netlify.app';
+  private readonly baseUrl = 'https://tax-calculator-web.netlify.app/';
 
   constructor(private http: HttpClient) {}
 
