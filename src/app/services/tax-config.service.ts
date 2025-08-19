@@ -180,6 +180,14 @@ export class TaxConfigService {
     const months = [];
     const currentDate = new Date();
     
+    // Filter existing salary entries to only include those from the selected financial year
+    const entriesForSelectedFY = existingSalaryEntries.filter(entry => {
+      const entryMonth = this.formatDateToMonthString(entry.taxableMonth);
+      const entryFinancialYear = this.getFinancialYear(entryMonth);
+      return entryFinancialYear.startYear === financialYear.startYear && 
+             entryFinancialYear.endYear === financialYear.endYear;
+    });
+    
     // Get all months in the financial year (April to March)
     for (let month = 4; month <= 15; month++) {
       const actualMonth = month > 12 ? month - 12 : month;
@@ -191,8 +199,8 @@ export class TaxConfigService {
       if (date <= currentDate) {
         const value = `${actualYear}-${actualMonth.toString().padStart(2, '0')}`;
         
-        // Check if this month already has a salary entry
-        const hasEntry = existingSalaryEntries.some(entry => {
+        // Check if this month already has a salary entry for the selected financial year
+        const hasEntry = entriesForSelectedFY.some(entry => {
           const entryMonth = this.formatDateToMonthString(entry.taxableMonth);
           return entryMonth === value;
         });

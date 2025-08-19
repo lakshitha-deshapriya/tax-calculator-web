@@ -131,9 +131,21 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   get sortedSalaryEntries(): SalaryEntry[] {
-    return [...this.taxConfig.salaryEntries].sort((a, b) => {
-      return b.taxableMonth.getTime() - a.taxableMonth.getTime(); // Most recent first
-    });
+    if (!this.selectedFinancialYear) {
+      return [];
+    }
+    
+    // Filter entries for the selected financial year and sort by taxable month
+    return [...this.taxConfig.salaryEntries]
+      .filter(entry => {
+        const entryMonth = this.formatDateToMonthString(entry.taxableMonth);
+        const entryFinancialYear = this.taxConfigService.getFinancialYear(entryMonth);
+        return entryFinancialYear.startYear === this.selectedFinancialYear.startYear && 
+               entryFinancialYear.endYear === this.selectedFinancialYear.endYear;
+      })
+      .sort((a, b) => {
+        return b.taxableMonth.getTime() - a.taxableMonth.getTime(); // Most recent first
+      });
   }
 
   trackByFinancialYear(index: number, item: FinancialYear): string {

@@ -95,8 +95,8 @@
   </div>
 
   <!-- Existing Salary Entries -->
-  <div *ngIf="sortedSalaryEntries.length > 0" class="salary-entries">
-    <h3>Your Salary Entries</h3>
+  <div *ngIf="sortedSalaryEntries.length > 0 && selectedFinancialYear" class="salary-entries">
+    <h3>Your Salary Entries for {{ selectedFinancialYear.label }}</h3>
     <div class="entries-list">
       <div *ngFor="let entry of sortedSalaryEntries" class="salary-entry-card">
         <div class="entry-header">
@@ -128,7 +128,7 @@
     </div>
   </div>
 
-  <div *ngIf="sortedSalaryEntries.length === 0" class="empty-state">
-    <p>No salary entries added yet. Add your first salary entry above.</p>
+  <div *ngIf="sortedSalaryEntries.length === 0 && selectedFinancialYear" class="empty-state">
+    <p>No salary entries added for {{ selectedFinancialYear.label }} yet. Add your first salary entry above.</p>
   </div>
 </div>

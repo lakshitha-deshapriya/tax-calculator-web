@@ -16,7 +16,7 @@ import { TaxCalculatorComponent } from './components/tax-calculator/tax-calculat
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
-  title = 'Tax Calculator Web';
+  title = 'Foreign Income Tax Calculator';
 
   // Tax calculator related properties
   taxConfig: TaxConfig;
