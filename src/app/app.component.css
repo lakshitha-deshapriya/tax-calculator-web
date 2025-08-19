@@ -48,6 +48,52 @@ body {
   gap: 2rem;
 }
 
+/* Info Card Styles */
+.info-card {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%);
+  border: 2px solid #4fc3f7;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(79, 195, 247, 0.15);
+}
+
+.info-card h3 {
+  color: #1565c0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-card p {
+  color: #424242;
+  margin-bottom: 0.8rem;
+  line-height: 1.6;
+}
+
+.info-card ol {
+  margin-left: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.info-card li {
+  color: #546e7a;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.info-card .note {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #ffc107;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #f57c00;
+  margin-bottom: 0;
+}
+
 .exchange-rate-section {
   background: white;
   padding: 2rem;

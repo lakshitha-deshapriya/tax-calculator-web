@@ -4,6 +4,18 @@
     <p class="subtitle">Get real-time currency exchange rates from CBSL</p>
   </header>
 
+  <!-- Data Sources Information -->
+  <div class="info-card">
+    <h3>📊 Data Sources</h3>
+    <p>This application tries multiple sources to get you the most accurate exchange rates:</p>
+    <ol>
+      <li><strong>Primary:</strong> CBSL (Central Bank of Sri Lanka) - Official rates</li>
+      <li><strong>Backup:</strong> ExchangeRate-API - Real-time market rates</li>
+      <li><strong>Fallback:</strong> Static reference data when online sources are unavailable</li>
+    </ol>
+    <p class="note">⚠️ <em>When official CBSL data is not available (weekends/holidays), estimated rates from backup sources are used.</em></p>
+  </div>
+
   <main class="main-content">
     <div class="exchange-rate-section">
       <h2>Currency Exchange Rate Lookup</h2>

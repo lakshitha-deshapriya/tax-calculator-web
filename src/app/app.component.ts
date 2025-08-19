@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ExchangeRateService, ExchangeRateData } from './services/exchange-rate.service';
+import { ExchangeRateGithubPagesService as ExchangeRateService, ExchangeRateData } from './services/exchange-rate-github-pages.service';
 
 @Component({
   selector: 'app-root',
