@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ExchangeRateGithubPagesService as ExchangeRateService, ExchangeRateData } from './services/exchange-rate-github-pages.service';
+import { ExchangeRateService, ExchangeRateData } from './services/exchange-rate.service';
 
 @Component({
   selector: 'app-root',
@@ -48,7 +48,7 @@ export class AppComponent implements OnInit {
 
     const date = new Date(this.selectedDate);
     
-    this.exchangeRateService.getExchangeRate(this.selectedCurrency, date).subscribe({
+        this.exchangeRateService.getExchangeRate(date, this.selectedCurrency).subscribe({
       next: (data: ExchangeRateData) => {
         this.exchangeRateData = data;
         this.isLoading = false;
