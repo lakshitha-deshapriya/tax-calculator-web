@@ -1,7 +1,44 @@
 <div class="container">
   <header class="header">
-    <h1>{{ title }}</h1>
-    <p class="subtitle">Calculate your income tax with real-time currency exchange rates from CBSL</p>
+    <div class="header-content">
+      <div class="title-section">
+        <h1>{{ title }}</h1>
+        <p class="subtitle">Calculate your income tax with real-time currency exchange rates from CBSL</p>
+      </div>
+      
+      <!-- Profile Button -->
+      <div class="profile-section">
+        <div *ngIf="!isSignedIn" class="sign-in-btn-container">
+          <button class="sign-in-btn" (click)="signIn()">
+            <span class="google-icon">G</span>
+            Sign In
+          </button>
+        </div>
+        
+        <div *ngIf="isSignedIn && currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">>
+          <button class="profile-btn" (click)="toggleProfileDropdown()">
+            <img [src]="currentUser.picture" [alt]="currentUser.name" class="profile-avatar">
+            <span class="profile-name">{{ currentUser.name }}</span>
+            <span class="dropdown-arrow" [class.open]="showProfileDropdown">▼</span>
+          </button>
+          
+          <div class="dropdown-menu" *ngIf="showProfileDropdown">
+            <div class="dropdown-header">
+              <img [src]="currentUser.picture" [alt]="currentUser.name" class="dropdown-avatar">
+              <div class="user-info">
+                <div class="user-name">{{ currentUser.name }}</div>
+                <div class="user-email">{{ currentUser.email }}</div>
+              </div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item sign-out-item" (click)="signOut()">
+              <span class="item-icon">🚪</span>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </header>
 
   <!-- Navigation Tabs -->
@@ -34,6 +71,16 @@
     >
       Exchange Rates
     </button>
+    <!-- Admin only tab -->
+    <button 
+      *ngIf="isAdmin"
+      class="tab-button admin-tab" 
+      [class.active]="activeTab === 'distribution'"
+      (click)="activeTab = 'distribution'"
+      title="Admin Only: Salary Distribution Analysis"
+    >
+      💰 Salary Distribution
+    </button>
   </div>
 
   <main class="main-content">
@@ -65,5 +112,13 @@
     <div *ngIf="activeTab === 'exchange'" class="tab-content">
       <app-exchange-rate></app-exchange-rate>
     </div>
+
+    <!-- Admin Only: Salary Distribution Tab -->
+    <div *ngIf="activeTab === 'distribution' && isAdmin" class="tab-content">
+      <app-salary-distribution></app-salary-distribution>
+    </div>
   </main>
+  
+  <!-- Debug Panel (only in development) -->
+  <app-debug-panel></app-debug-panel>
 </div>

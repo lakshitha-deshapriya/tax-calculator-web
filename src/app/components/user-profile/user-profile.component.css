@@ -1,0 +1,246 @@
+.user-profile-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Configuration Warning */
+.config-warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.config-warning h3 {
+  margin: 0 0 15px 0;
+  color: #856404;
+}
+
+.config-warning ol {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.config-warning li {
+  margin: 8px 0;
+  color: #856404;
+}
+
+.config-warning a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.config-warning a:hover {
+  text-decoration: underline;
+}
+
+.config-warning code {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+}
+
+.skip-note {
+  background: #d1ecf1;
+  border: 1px solid #bee5eb;
+  padding: 10px;
+  border-radius: 4px;
+  color: #0c5460;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+/* Sign In Section */
+.sign-in-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.sign-in-info {
+  margin-bottom: 25px;
+}
+
+.sign-in-text {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.optional-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.sign-in-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.google-signin-button {
+  display: flex;
+  justify-content: center;
+}
+
+.skip-signin-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: #666;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.skip-signin-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+/* Signed In Section */
+.user-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid #4285f4;
+  object-fit: cover;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.user-email {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.signed-in-badge {
+  background: #4caf50;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.sign-out-btn {
+  background: #ff5722;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.sign-out-btn:hover {
+  background: #e64a19;
+}
+
+/* Benefits Section */
+.benefits-info {
+  margin-top: 25px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #4285f4;
+}
+
+.benefits-info.compact {
+  margin-top: 15px;
+  padding: 15px;
+}
+
+.benefits-info h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.benefits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.benefits-list li {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.benefits-list li:last-child {
+  border-bottom: none;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .user-profile-container {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .user-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .user-details {
+    text-align: center;
+  }
+}

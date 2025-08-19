@@ -1,0 +1,59 @@
+<div class="user-profile-container">
+  <!-- Not Configured State -->
+  <div *ngIf="!isGoogleConfigured" class="config-warning">
+    <h3>🔧 Google Sign-In Setup Required</h3>
+    <p>To enable Google Sign-In, please follow these steps:</p>
+    <ol>
+      <li>Get a Google OAuth Client ID from <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+      <li>Update the <code>googleClientId</code> in <code>src/app/config/auth.config.ts</code></li>
+      <li>See <code>GOOGLE_SIGNIN_SETUP.md</code> for detailed instructions</li>
+    </ol>
+    <p class="skip-note">You can still use the app without signing in - all features work offline!</p>
+  </div>
+
+  <!-- Signed Out State -->
+  <div *ngIf="isGoogleConfigured && !isSignedIn" class="sign-in-section">
+    <div class="sign-in-info">
+      <p class="sign-in-text">
+        <span class="optional-badge">Optional</span>
+        Sign in with Google to save your tax configurations to the cloud
+      </p>
+    </div>
+    <div class="sign-in-buttons">
+      <div #googleSignInButton class="google-signin-button"></div>
+      <button class="skip-signin-btn" (click)="promptSignIn()">
+        Continue without signing in
+      </button>
+    </div>
+  </div>
+
+  <!-- Signed In State -->
+  <div *ngIf="isSignedIn && user" class="user-info-section">
+    <div class="user-card">
+      <div class="user-avatar">
+        <img [src]="user.picture" [alt]="user.name" class="avatar-image">
+      </div>
+      <div class="user-details">
+        <h3 class="user-name">{{ user.name }}</h3>
+        <p class="user-email">{{ user.email }}</p>
+        <span class="signed-in-badge">✓ Signed In</span>
+      </div>
+    </div>
+    <div class="user-actions">
+      <button class="sign-out-btn" (click)="signOut()">
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Benefits Info -->
+  <div class="benefits-info" [class.compact]="isSignedIn">
+    <h4>Benefits of signing in:</h4>
+    <ul class="benefits-list">
+      <li>🔄 Sync your tax configurations across devices</li>
+      <li>💾 Automatic backup of your settings</li>
+      <li>📊 Access to usage analytics (coming soon)</li>
+      <li *ngIf="!isSignedIn">🔒 Your data stays private and secure</li>
+    </ul>
+  </div>
+</div>

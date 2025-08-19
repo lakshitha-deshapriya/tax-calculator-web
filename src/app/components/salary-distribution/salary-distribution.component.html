@@ -1,0 +1,113 @@
+<div class="salary-distribution-container">
+  <div class="header-section">
+    <h2>💰 Salary Distribution Analysis</h2>
+    <p class="subtitle">Analyze and manage your salary breakdown</p>
+    <div class="total-salary">
+      <span class="label">Total Annual Salary:</span>
+      <span class="amount">${{ totalSalary | number:'1.0-0' }}</span>
+    </div>
+  </div>
+
+  <!-- Distribution Chart -->
+  <div class="chart-section">
+    <h3>Distribution Overview</h3>
+    <div class="distribution-chart">
+      <div 
+        *ngFor="let item of distributionItems; let i = index" 
+        class="chart-bar"
+        [class]="'chart-bar-' + getColorClass(i)"
+        [style.height.%]="item.percentage"
+        [title]="item.category + ': $' + item.amount + ' (' + item.percentage.toFixed(1) + '%)'"
+      >
+        <span class="bar-label">{{ item.percentage.toFixed(1) }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribution Table -->
+  <div class="table-section">
+    <h3>Detailed Breakdown</h3>
+    <div class="distribution-table">
+      <div class="table-header">
+        <div class="col-category">Category</div>
+        <div class="col-amount">Amount ($)</div>
+        <div class="col-percentage">Percentage</div>
+        <div class="col-description">Description</div>
+        <div class="col-actions">Actions</div>
+      </div>
+      
+      <div 
+        *ngFor="let item of distributionItems; let i = index" 
+        class="table-row"
+        [class]="'row-' + getColorClass(i)"
+      >
+        <div class="col-category">
+          <input 
+            type="text" 
+            [(ngModel)]="item.category" 
+            class="category-input"
+          >
+        </div>
+        <div class="col-amount">
+          <input 
+            type="number" 
+            [(ngModel)]="item.amount" 
+            (ngModelChange)="updateAmount(i, $event)"
+            class="amount-input"
+            min="0"
+          >
+        </div>
+        <div class="col-percentage">
+          <span class="percentage-badge" [class]="'badge-' + getColorClass(i)">
+            {{ item.percentage.toFixed(1) }}%
+          </span>
+        </div>
+        <div class="col-description">
+          <input 
+            type="text" 
+            [(ngModel)]="item.description" 
+            class="description-input"
+            placeholder="Enter description"
+          >
+        </div>
+        <div class="col-actions">
+          <button 
+            class="btn-remove" 
+            (click)="removeCategory(i)"
+            [disabled]="distributionItems.length <= 1"
+            title="Remove category"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="table-actions">
+      <button class="btn-add" (click)="addNewCategory()">
+        ➕ Add New Category
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="summary-section">
+    <div class="summary-cards">
+      <div class="summary-card">
+        <h4>Highest Component</h4>
+        <p>{{ getHighestComponent()?.category || 'N/A' }}</p>
+        <span class="summary-amount">${{ getHighestComponent()?.amount || 0 | number:'1.0-0' }}</span>
+      </div>
+      <div class="summary-card">
+        <h4>Categories</h4>
+        <p>Total Components</p>
+        <span class="summary-count">{{ distributionItems.length }}</span>
+      </div>
+      <div class="summary-card">
+        <h4>Average Amount</h4>
+        <p>Per Category</p>
+        <span class="summary-amount">${{ (totalSalary / distributionItems.length) | number:'1.0-0' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
