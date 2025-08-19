@@ -391,6 +391,45 @@ export class AppComponent implements OnInit {
     return this.taxConfigService.calculateDetailedTaxBreakdown(totalSalary, this.taxConfig.taxBrackets);
   }
 
+  getBracketSpecificTaxBreakdown(totalSalary: number) {
+    const brackets = this.taxConfig.taxBrackets.sort((a, b) => a.minIncome - b.minIncome);
+    const result = [];
+    
+    for (let i = 0; i < brackets.length; i++) {
+      const bracket = brackets[i];
+      const rangeMin = bracket.minIncome;
+      const rangeMax = bracket.maxIncome;
+      
+      // Calculate the taxable amount in this specific bracket
+      let taxableInBracket = 0;
+      
+      if (totalSalary > rangeMin) {
+        if (rangeMax === null) {
+          // Highest bracket - no upper limit
+          taxableInBracket = totalSalary - rangeMin;
+        } else {
+          // Middle brackets - has upper limit
+          taxableInBracket = Math.min(totalSalary, rangeMax) - rangeMin;
+        }
+        taxableInBracket = Math.max(0, taxableInBracket);
+      }
+      
+      const taxForThisBracket = taxableInBracket * bracket.taxRate;
+      
+      if (taxableInBracket > 0 || i === 0) { // Always show first bracket even if 0
+        result.push({
+          rangeMin: rangeMin,
+          rangeMax: rangeMax,
+          rate: bracket.taxRate,
+          taxableAmount: taxableInBracket,
+          tax: taxForThisBracket
+        });
+      }
+    }
+    
+    return result;
+  }
+
   trackBySalaryEntry(index: number, entry: SalaryEntry): string {
     return entry.id;
   }

@@ -1014,52 +1014,285 @@ body {
   color: #007bff;
 }
 
-.breakdown-brackets .bracket-item {
-  padding: 10px;
-  margin-bottom: 8px;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+/* Monthly Breakdown - Redesigned */
+.monthly-breakdown-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.monthly-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.monthly-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.month-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.bracket-range {
+.month-title {
+  font-size: 1.1em;
   font-weight: 600;
-  color: #333;
+  color: #1f2937;
+  margin: 0;
 }
 
-.bracket-calculation {
+.received-date {
+  font-size: 0.85em;
+  color: #6b7280;
+}
+
+.salary-info-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr auto;
+  gap: 20px;
+  align-items: start;
+}
+
+.salary-column,
+.tax-column {
   display: flex;
-  gap: 15px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.currency-info {
+  font-weight: 600;
+}
+
+.currency-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.currency-amount {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.lkr-info .label {
+  font-weight: 600;
+  color: #059669;
+}
+
+.lkr-amount {
+  font-size: 1.05em;
+  font-weight: 600;
+  color: #059669;
+}
+
+.rate-info {
+  font-size: 0.9em;
+}
+
+.rate-info .label {
+  color: #6b7280;
+}
+
+.rate-info .rate-value {
+  color: #374151;
+  font-weight: 500;
+}
+
+.tax-info .tax-label {
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.tax-amount {
+  font-weight: 600;
+  color: #dc2626;
+  font-size: 1.05em;
+}
+
+.net-info .net-label {
+  font-weight: 500;
+  color: #059669;
+}
+
+.net-amount {
+  font-weight: 600;
+  color: #059669;
+  font-size: 1.05em;
+}
+
+.action-column {
+  display: flex;
   align-items: center;
 }
 
-.bracket-calculation .rate {
-  background-color: #007bff;
+.tax-details-button {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tax-details-button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.tax-details-button.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Tax Breakdown Panel */
+.tax-breakdown-panel {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.breakdown-header h6 {
+  margin: 0 0 15px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.calculation-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.step-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.step-item.highlight-step {
+  background: #ecfdf5;
+  border-color: #10b981;
+  font-weight: 600;
+}
+
+.step-label {
+  font-size: 0.9em;
+  color: #475569;
+}
+
+.step-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.final-tax {
+  color: #059669;
+  font-size: 1.1em;
+}
+
+.tax-brackets-section h6 {
+  margin: 20px 0 10px 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.brackets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bracket-row {
+  display: grid;
+  grid-template-columns: 2fr auto 1fr;
+  gap: 15px;
+  align-items: center;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.9em;
+}
+
+.bracket-range {
+  font-weight: 500;
+  color: #475569;
+}
+
+.bracket-rate {
+  background: #3b82f6;
   color: white;
   padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.bracket-calculation .annual-tax {
-  color: #666;
-  font-size: 14px;
-}
-
-.bracket-calculation .monthly-tax {
-  color: #007bff;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 0.8em;
   font-weight: 600;
+  text-align: center;
 }
 
-.bracket-calculation .cumulative-tax {
-  color: #28a745;
-  font-size: 14px;
+.bracket-tax {
   font-weight: 600;
+  color: #059669;
+  text-align: right;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .salary-info-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .month-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .bracket-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: center;
+  }
+  
+  .bracket-tax {
+    text-align: center;
+  }
 }
 
 .summary-item .tax-rate {
