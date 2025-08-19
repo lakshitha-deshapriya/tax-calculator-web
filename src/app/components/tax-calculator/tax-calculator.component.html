@@ -45,7 +45,7 @@
           </div>
           <div class="summary-item">
             <span class="label">Effective Tax Rate:</span>
-            <span class="value tax-rate">{{ getTotalSalaryForSelectedYear() > 0 ? (getTotalTaxForSelectedYear() / getTotalSalaryForSelectedYear() * 100) : 0 | number:'1.1-1' }}%</span>
+            <span class="value tax-rate">{{ (getTotalSalaryForSelectedYear() > 0 ? (getTotalTaxForSelectedYear() / getTotalSalaryForSelectedYear() * 100) : 0) | number:'1.2-2' }}%</span>
           </div>
         </div>
         
