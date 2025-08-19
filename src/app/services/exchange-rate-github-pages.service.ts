@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, of } from 'rxjs';
+import { map, catchError, timeout, retry } from 'rxjs/operators';
 
 export interface ExchangeRateData {
   date: Date;
   currency: string;
   buyingRate: number;
   sellingRate: number;
-  source?: string;
+  source: string;
   averageRate: number;
 }
 
@@ -16,60 +16,45 @@ export interface ExchangeRateData {
   providedIn: 'root'
 })
 export class ExchangeRateGithubPagesService {
-  
-  // Multiple CORS proxy services as fallbacks
   private corsProxies = [
     'https://api.allorigins.win/raw?url=',
     'https://corsproxy.io/?',
     'https://cors-anywhere.herokuapp.com/'
   ];
 
-  // Static exchange rate data as ultimate fallback
-  private staticRates: { [currency: string]: { buying: number, selling: number } } = {
-    'USD': { buying: 299.50, selling: 309.50 },
-    'EUR': { buying: 325.75, selling: 336.25 },
-    'GBP': { buying: 378.50, selling: 390.50 },
-    'JPY': { buying: 2.05, selling: 2.15 },
-    'AUD': { buying: 199.25, selling: 206.75 },
-    'CAD': { buying: 221.50, selling: 229.50 },
-    'CHF': { buying: 337.25, selling: 348.75 },
-    'SEK': { buying: 28.75, selling: 29.75 },
-    'NOK': { buying: 28.25, selling: 29.25 },
-    'DKK': { buying: 43.50, selling: 45.50 }
-  };
+  constructor(private http: HttpClient) { }
 
-  constructor(private http: HttpClient) {}
+  getExchangeRate(currency: string, date: Date): Observable<ExchangeRateData> {
+    const startDateStr = this.formatDateForAPI(date);
+    const endDateStr = startDateStr;
 
-  /**
-   * Fetches exchange rate for a specific currency and date
-   */
-  getExchangeRate(date: Date, currency: string): Observable<ExchangeRateData> {
-    return this.getExchangeRateForDateRange(date, date, currency);
+    return this.tryProxiesSequentially(0, startDateStr, endDateStr, currency, date)
+      .pipe(
+        timeout(15000),
+        retry(2),
+        catchError(() => {
+          console.warn('All CORS proxies failed for CBSL, trying alternative APIs');
+          return this.tryAlternativeAPIs(currency, date);
+        })
+      );
   }
 
-  /**
-   * Fetches exchange rate for a specific currency and date range
-   */
-  getExchangeRateForDateRange(startDate: Date, endDate: Date, currency: string): Observable<ExchangeRateData> {
-    // Try to fetch from CBSL with CORS proxies
-    return this.tryFetchFromCBSL(startDate, endDate, currency).pipe(
-      catchError(() => {
-        // If CBSL fails, try alternative APIs
-        return this.tryAlternativeAPIs(currency, startDate);
-      }),
-      catchError(() => {
-        // If all APIs fail, use static data with disclaimer
-        return this.getStaticRate(currency, startDate);
-      })
-    );
+  getSupportedCurrencies(): { code: string, name: string }[] {
+    return [
+      { code: 'USD', name: 'US Dollar' },
+      { code: 'EUR', name: 'Euro' },
+      { code: 'GBP', name: 'British Pound' },
+      { code: 'AUD', name: 'Australian Dollar' },
+      { code: 'CAD', name: 'Canadian Dollar' },
+      { code: 'SGD', name: 'Singapore Dollar' },
+      { code: 'JPY', name: 'Japanese Yen' },
+      { code: 'CNY', name: 'Chinese Yuan' },
+      { code: 'INR', name: 'Indian Rupee' }
+    ];
   }
 
-  private tryFetchFromCBSL(startDate: Date, endDate: Date, currency: string): Observable<ExchangeRateData> {
-    const startDateStr = this.formatDate(startDate);
-    const endDateStr = this.formatDate(endDate);
-    
-    // Try each CORS proxy until one works
-    return this.tryProxiesSequentially(0, startDateStr, endDateStr, currency, startDate);
+  private formatDateForAPI(date: Date): string {
+    return date.toISOString().split('T')[0];
   }
 
   private tryProxiesSequentially(proxyIndex: number, startDateStr: string, endDateStr: string, currency: string, originalDate: Date): Observable<ExchangeRateData> {
@@ -77,6 +62,24 @@ export class ExchangeRateGithubPagesService {
       throw new Error('All CORS proxies failed');
     }
 
+    const proxy = this.corsProxies[proxyIndex];
+    
+    // Try the main exchange rates page first for current rates
+    const cbslMainUrl = `https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates/daily-buy-and-sell-exchange-rates`;
+    const fullMainUrl = `${proxy}${encodeURIComponent(cbslMainUrl)}`;
+
+    return this.http.get(fullMainUrl, {
+      responseType: 'text'
+    }).pipe(
+      map(response => this.parseCBSLMainPageResponse(response, currency, originalDate)),
+      catchError(() => {
+        // If main page fails, try the old API endpoint
+        return this.tryOldCBSLAPI(proxyIndex, startDateStr, endDateStr, currency, originalDate);
+      })
+    );
+  }
+
+  private tryOldCBSLAPI(proxyIndex: number, startDateStr: string, endDateStr: string, currency: string, originalDate: Date): Observable<ExchangeRateData> {
     const proxy = this.corsProxies[proxyIndex];
     const cbslUrl = `https://www.cbsl.gov.lk/cbsl_custom/exchangerates/date_exchangerates.php`;
     const fullUrl = `${proxy}${encodeURIComponent(cbslUrl)}`;
@@ -94,32 +97,55 @@ export class ExchangeRateGithubPagesService {
       map(response => this.parseCBSLResponse(response, currency, originalDate)),
       catchError(() => {
         // Try next proxy
-        return this.tryProxiesSequentially(proxyIndex + 1, startDateStr, endDateStr, currency, originalDate);
+        if (proxyIndex + 1 < this.corsProxies.length) {
+          return this.tryProxiesSequentially(proxyIndex + 1, startDateStr, endDateStr, currency, originalDate);
+        } else {
+          throw new Error('All proxies failed');
+        }
       })
     );
   }
 
-  private parseCBSLResponse(htmlResponse: string, currency: string, date: Date): ExchangeRateData {
-    // Parse HTML response to extract exchange rate data
+  private parseCBSLMainPageResponse(htmlResponse: string, currency: string, date: Date): ExchangeRateData {
+    console.log('Parsing CBSL main page response for', currency);
+    
+    // Parse the main CBSL page for current exchange rates
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlResponse, 'text/html');
     
-    // Look for table with exchange rates
+    // Look for table with exchange rates - CBSL typically uses tables for rate display
     const tables = doc.querySelectorAll('table');
     
+    // Try to find rates in various table structures
     for (const table of Array.from(tables)) {
-      const rows = table.querySelectorAll('tr');
-      
-      for (const row of Array.from(rows)) {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 4) {
-          const currencyCell = cells[1]?.textContent?.trim();
+      const result = this.extractRatesFromTable(table, currency, date);
+      if (result) return result;
+    }
+    
+    // If no tables found, try to find rates in div elements with common patterns
+    const allText = doc.body.textContent || '';
+    const result = this.extractRatesFromText(allText, currency, date);
+    if (result) return result;
+    
+    throw new Error(`Currency ${currency} not found in CBSL main page response`);
+  }
+
+  private extractRatesFromTable(table: Element, currency: string, date: Date): ExchangeRateData | null {
+    const rows = table.querySelectorAll('tr');
+    
+    for (const row of Array.from(rows)) {
+      const cells = row.querySelectorAll('td, th');
+      if (cells.length >= 3) {
+        for (let i = 0; i < cells.length - 2; i++) {
+          const cellText = cells[i]?.textContent?.trim();
           
-          if (currencyCell && currencyCell.includes(currency)) {
-            const buyingRate = parseFloat(cells[2]?.textContent?.replace(/,/g, '') || '0');
-            const sellingRate = parseFloat(cells[3]?.textContent?.replace(/,/g, '') || '0');
+          if (cellText && (cellText.includes(currency) || cellText === currency)) {
+            // Found currency, look for rates in next cells
+            const buyingRate = this.extractRate(cells[i + 1]?.textContent);
+            const sellingRate = this.extractRate(cells[i + 2]?.textContent);
             
             if (buyingRate > 0 && sellingRate > 0) {
+              console.log('Found rates in table:', {currency, buyingRate, sellingRate});
               return {
                 date: date,
                 currency: currency,
@@ -134,113 +160,184 @@ export class ExchangeRateGithubPagesService {
       }
     }
     
+    return null;
+  }
+
+  private extractRatesFromText(text: string, currency: string, date: Date): ExchangeRateData | null {
+    // Look for patterns like "USD 299.50 309.50" or similar in the text
+    const patterns = [
+      new RegExp(`${currency}\\s+([0-9,\\.]+)\\s+([0-9,\\.]+)`, 'i'),
+      new RegExp(`${currency}[:\\s]+([0-9,\\.]+)[\\s/]+([0-9,\\.]+)`, 'i'),
+      new RegExp(`${currency}.*?([0-9,\\.]+).*?([0-9,\\.]+)`, 'i')
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const rate1 = this.extractRate(match[1]);
+        const rate2 = this.extractRate(match[2]);
+        
+        if (rate1 > 0 && rate2 > 0) {
+          // Assume first rate is buying, second is selling (or vice versa based on values)
+          const buyingRate = rate1 < rate2 ? rate1 : rate2;
+          const sellingRate = rate1 > rate2 ? rate1 : rate2;
+          
+          console.log('Found rates in text:', {currency, buyingRate, sellingRate});
+          return {
+            date: date,
+            currency: currency,
+            buyingRate: buyingRate,
+            sellingRate: sellingRate,
+            source: 'CBSL (Central Bank of Sri Lanka)',
+            averageRate: (buyingRate + sellingRate) / 2
+          };
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private extractRate(rateString: string | null | undefined): number {
+    if (!rateString) return 0;
+    
+    // Remove commas and convert to number
+    const cleaned = rateString.replace(/[^\d.]/g, '').trim();
+    const rate = parseFloat(cleaned);
+    
+    return isNaN(rate) ? 0 : rate;
+  }
+
+  private parseCBSLResponse(htmlResponse: string, currency: string, date: Date): ExchangeRateData {
+    console.log('Parsing CBSL API response for', currency);
+    
+    // Parse HTML response to extract exchange rate data
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlResponse, 'text/html');
+
+    // Look for table rows containing exchange rate data
+    const rows = doc.querySelectorAll('tr');
+    
+    for (const row of Array.from(rows)) {
+      const cells = row.querySelectorAll('td');
+      
+      if (cells.length >= 6) {
+        const currencyCell = cells[1]?.textContent?.trim();
+        
+        if (currencyCell === currency) {
+          const buyingRateText = cells[4]?.textContent?.trim() || '';
+          const sellingRateText = cells[5]?.textContent?.trim() || '';
+          
+          const buyingRate = this.parseRateFromText(buyingRateText);
+          const sellingRate = this.parseRateFromText(sellingRateText);
+          
+          if (buyingRate > 0 && sellingRate > 0) {
+            console.log('Found rates in API response:', {currency, buyingRate, sellingRate});
+            return {
+              date: date,
+              currency: currency,
+              buyingRate: buyingRate,
+              sellingRate: sellingRate,
+              source: 'CBSL (Central Bank of Sri Lanka)',
+              averageRate: (buyingRate + sellingRate) / 2
+            };
+          }
+        }
+      }
+    }
+    
     throw new Error(`Currency ${currency} not found in CBSL response`);
   }
 
+  private parseRateFromText(rateText: string): number {
+    if (!rateText) return 0;
+    
+    const cleanRate = rateText.replace(/,/g, '').trim();
+    const rate = parseFloat(cleanRate);
+    
+    return isNaN(rate) ? 0 : rate;
+  }
+
   private tryAlternativeAPIs(currency: string, date: Date): Observable<ExchangeRateData> {
-    // Try exchangerate-api.com (free tier available)
+    console.warn('Using alternative API for', currency);
+    
+    // Try ExchangeRate-API as fallback
     return this.http.get<any>(`https://api.exchangerate-api.com/v4/latest/LKR`).pipe(
       map(response => {
-        if (response && response.rates && response.rates[currency]) {
-          const lkrPerUnit = 1 / response.rates[currency];
+        const rate = response.rates[currency];
+        if (rate) {
+          // Convert from LKR base to currency (inverse rate)
+          const lkrToUsd = 1 / rate;
+          const spread = 0.02; // 2% spread estimation
           
           return {
             date: date,
             currency: currency,
-            buyingRate: lkrPerUnit * 0.995, // Approximate spread
-            sellingRate: lkrPerUnit * 1.005,
+            buyingRate: lkrToUsd * (1 - spread),
+            sellingRate: lkrToUsd * (1 + spread),
             source: 'ExchangeRate-API (Estimated)',
-            averageRate: lkrPerUnit
+            averageRate: lkrToUsd
           };
         }
-        throw new Error('Currency not found in alternative API');
+        throw new Error(`Currency ${currency} not found in alternative API`);
       }),
-      catchError(() => {
-        // Try fixer.io as another alternative
-        return this.tryFixerAPI(currency, date);
-      })
+      catchError(() => this.tryFixerAPI(currency, date))
     );
   }
 
   private tryFixerAPI(currency: string, date: Date): Observable<ExchangeRateData> {
-    // Using free tier of fixer.io (requires registration but has free tier)
-    const fixerUrl = `https://api.fixer.io/latest?base=${currency}&symbols=LKR`;
+    console.warn('Using Fixer API for', currency);
     
-    return this.http.get<any>(fixerUrl).pipe(
+    // Fixer.io as another fallback (limited free tier)
+    return this.http.get<any>(`https://api.fixer.io/latest?base=LKR`).pipe(
       map(response => {
-        if (response && response.rates && response.rates.LKR) {
-          const lkrPerUnit = response.rates.LKR;
+        const rate = response.rates[currency];
+        if (rate) {
+          const spread = 0.02;
           
           return {
             date: date,
             currency: currency,
-            buyingRate: lkrPerUnit * 0.995,
-            sellingRate: lkrPerUnit * 1.005,
-            source: 'Fixer.io API (Estimated)',
-            averageRate: lkrPerUnit
+            buyingRate: rate * (1 - spread),
+            sellingRate: rate * (1 + spread),
+            source: 'Fixer.io (Estimated)',
+            averageRate: rate
           };
         }
-        throw new Error('Currency not found in Fixer API');
-      })
+        throw new Error(`Currency ${currency} not found in Fixer.io`);
+      }),
+      catchError(() => this.getStaticFallback(currency, date))
     );
   }
 
-  private getStaticRate(currency: string, date: Date): Observable<ExchangeRateData> {
-    const rates = this.staticRates[currency];
+  private getStaticFallback(currency: string, date: Date): Observable<ExchangeRateData> {
+    console.warn('Using static fallback rates for', currency);
     
+    // Static fallback rates (approximate current rates)
+    const staticRates: { [key: string]: { buying: number, selling: number } } = {
+      'USD': { buying: 299.50, selling: 309.50 },
+      'EUR': { buying: 325.00, selling: 335.00 },
+      'GBP': { buying: 380.00, selling: 390.00 },
+      'AUD': { buying: 195.00, selling: 205.00 },
+      'CAD': { buying: 220.00, selling: 230.00 },
+      'SGD': { buying: 220.00, selling: 230.00 },
+      'JPY': { buying: 2.05, selling: 2.15 },
+      'CNY': { buying: 41.50, selling: 43.50 },
+      'INR': { buying: 3.55, selling: 3.75 }
+    };
+
+    const rates = staticRates[currency];
     if (rates) {
       return of({
         date: date,
         currency: currency,
         buyingRate: rates.buying,
         sellingRate: rates.selling,
-        source: 'Static Reference Data (Not Real-time)',
+        source: 'Static Fallback (Approximate)',
         averageRate: (rates.buying + rates.selling) / 2
       });
     }
-    
-    throw new Error(`No exchange rate data available for ${currency}`);
-  }
 
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  /**
-   * Get available currencies
-   */
-  getAvailableCurrencies(): string[] {
-    return ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK'];
-  }
-
-  /**
-   * Get supported currencies with names (for compatibility with existing component)
-   */
-  getSupportedCurrencies(): { code: string, name: string }[] {
-    return [
-      { code: 'USD', name: 'US Dollar' },
-      { code: 'EUR', name: 'Euro' },
-      { code: 'GBP', name: 'British Pound' },
-      { code: 'JPY', name: 'Japanese Yen' },
-      { code: 'AUD', name: 'Australian Dollar' },
-      { code: 'CAD', name: 'Canadian Dollar' },
-      { code: 'CHF', name: 'Swiss Franc' },
-      { code: 'SEK', name: 'Swedish Krona' },
-      { code: 'NOK', name: 'Norwegian Krone' },
-      { code: 'DKK', name: 'Danish Krone' }
-    ];
-  }
-
-  /**
-   * Check if service is online and working
-   */
-  checkServiceHealth(): Observable<boolean> {
-    return this.http.get('https://api.exchangerate-api.com/v4/latest/USD').pipe(
-      map(() => true),
-      catchError(() => of(false))
-    );
+    return throwError(() => new Error(`Currency ${currency} not supported`));
   }
 }

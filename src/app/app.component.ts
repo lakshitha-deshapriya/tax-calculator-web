@@ -48,13 +48,13 @@ export class AppComponent implements OnInit {
 
     const date = new Date(this.selectedDate);
     
-    this.exchangeRateService.getExchangeRate(date, this.selectedCurrency).subscribe({
-      next: (data) => {
+    this.exchangeRateService.getExchangeRate(this.selectedCurrency, date).subscribe({
+      next: (data: ExchangeRateData) => {
         this.exchangeRateData = data;
         this.isLoading = false;
         console.log('Exchange rate data received:', data);
       },
-      error: (error) => {
+      error: (error: any) => {
         this.errorMessage = error.message || 'Failed to fetch exchange rate. Please try again.';
         this.isLoading = false;
         console.error('Error fetching exchange rate:', error);
