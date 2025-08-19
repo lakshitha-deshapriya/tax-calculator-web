@@ -129,7 +129,86 @@ export class TaxConfigService {
   }
 
   /**
-   * Get list of available months for taxable month selection (last 24 months)
+   * Get current financial year
+   */
+  getCurrentFinancialYear(): FinancialYear {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+    
+    if (currentMonth >= 4) {
+      // April to December - current year to next year
+      return {
+        startYear: currentYear,
+        endYear: currentYear + 1,
+        label: `${currentYear}/${(currentYear + 1).toString().substr(-2)}`
+      };
+    } else {
+      // January to March - previous year to current year
+      return {
+        startYear: currentYear - 1,
+        endYear: currentYear,
+        label: `${currentYear - 1}/${currentYear.toString().substr(-2)}`
+      };
+    }
+  }
+
+  /**
+   * Get available financial years (current and previous 2 years)
+   */
+  getAvailableFinancialYears(): FinancialYear[] {
+    const current = this.getCurrentFinancialYear();
+    const years = [];
+    
+    for (let i = 0; i < 3; i++) {
+      const startYear = current.startYear - i;
+      const endYear = current.endYear - i;
+      years.push({
+        startYear,
+        endYear,
+        label: `${startYear}/${endYear.toString().substr(-2)}`
+      });
+    }
+    
+    return years;
+  }
+
+  /**
+   * Get available taxable months for a specific financial year that haven't been entered yet
+   */
+  getAvailableTaxableMonths(financialYear: FinancialYear, existingSalaryEntries: SalaryEntry[]): { value: string; label: string }[] {
+    const months = [];
+    const currentDate = new Date();
+    
+    // Get all months in the financial year (April to March)
+    for (let month = 4; month <= 15; month++) {
+      const actualMonth = month > 12 ? month - 12 : month;
+      const actualYear = month > 12 ? financialYear.endYear : financialYear.startYear;
+      
+      const date = new Date(actualYear, actualMonth - 1, 1);
+      
+      // Only include months that are not in the future
+      if (date <= currentDate) {
+        const value = `${actualYear}-${actualMonth.toString().padStart(2, '0')}`;
+        
+        // Check if this month already has a salary entry
+        const hasEntry = existingSalaryEntries.some(entry => {
+          const entryMonth = this.formatDateToMonthString(entry.taxableMonth);
+          return entryMonth === value;
+        });
+        
+        if (!hasEntry) {
+          const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+          months.push({ value, label });
+        }
+      }
+    }
+    
+    return months.sort((a, b) => b.value.localeCompare(a.value)); // Most recent first
+  }
+
+  /**
+   * Get list of available months for taxable month selection (last 24 months) - Legacy method
    */
   getAvailableMonths(): { value: string; label: string }[] {
     const months = [];
@@ -143,6 +222,28 @@ export class TaxConfigService {
     }
     
     return months;
+  }
+
+  /**
+   * Get the date range (min and max) for a given month string (YYYY-MM format)
+   */
+  getMonthDateRange(monthString: string): { minDate: string; maxDate: string } {
+    const [year, month] = monthString.split('-').map(Number);
+    
+    // First day of the month
+    const minDate = new Date(year, month - 1, 1);
+    
+    // Last day of the month
+    const maxDate = new Date(year, month, 0);
+    
+    // Don't allow future dates
+    const today = new Date();
+    const actualMaxDate = maxDate > today ? today : maxDate;
+    
+    return {
+      minDate: this.formatDateForInput(minDate),
+      maxDate: this.formatDateForInput(actualMaxDate)
+    };
   }
 
   /**

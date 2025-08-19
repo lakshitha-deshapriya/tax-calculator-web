@@ -1,10 +1,33 @@
 <div class="salary-section">
   <h2>Salary Management</h2>
   
+  <!-- Financial Year Selection -->
+  <div class="financial-year-selector">
+    <h3>Financial Year</h3>
+    <div class="form-container">
+      <div class="input-group">
+        <label for="financialYear">Select Financial Year:</label>
+        <select 
+          id="financialYear"
+          [(ngModel)]="selectedFinancialYear"
+          (change)="onFinancialYearChange()"
+          class="form-select"
+        >
+          <option *ngFor="let fy of availableFinancialYears" [ngValue]="fy">
+            {{ fy.label }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+  
   <!-- Add New Salary Entry -->
   <div class="add-salary-form">
     <h3>Add New Salary Entry</h3>
-    <div class="form-container">
+    <div *ngIf="availableMonths.length === 0" class="no-months-available">
+      <p>All taxable months for {{ selectedFinancialYear.label }} have been entered. Please select a different financial year or delete existing entries to add more.</p>
+    </div>
+    <div *ngIf="availableMonths.length > 0" class="form-container">
       <div class="form-row">
         <div class="input-group">
           <label for="taxableMonth">Taxable Month:</label>
@@ -27,7 +50,8 @@
             id="salaryDate"
             [(ngModel)]="newSalaryEntry.salaryDate"
             class="form-input"
-            [max]="maxDate"
+            [min]="salaryDateRange.minDate"
+            [max]="salaryDateRange.maxDate"
           >
         </div>
       </div>
@@ -71,12 +95,15 @@
   </div>
 
   <!-- Existing Salary Entries -->
-  <div *ngIf="taxConfig.salaryEntries.length > 0" class="salary-entries">
+  <div *ngIf="sortedSalaryEntries.length > 0" class="salary-entries">
     <h3>Your Salary Entries</h3>
     <div class="entries-list">
-      <div *ngFor="let entry of taxConfig.salaryEntries" class="salary-entry-card">
+      <div *ngFor="let entry of sortedSalaryEntries" class="salary-entry-card">
         <div class="entry-header">
-          <h4>{{ entry.taxableMonth | date:'MMMM yyyy' }} (Taxable Month)</h4>
+          <div>
+            <h4>{{ entry.taxableMonth | date:'MMMM yyyy' }} (Taxable Month)</h4>
+            <span class="financial-year-badge">FY {{ entry.financialYear }}</span>
+          </div>
           <button class="delete-button" (click)="onDeleteSalaryEntry(entry.id)">×</button>
         </div>
         <div class="entry-details">
@@ -101,7 +128,7 @@
     </div>
   </div>
 
-  <div *ngIf="taxConfig.salaryEntries.length === 0" class="empty-state">
+  <div *ngIf="sortedSalaryEntries.length === 0" class="empty-state">
     <p>No salary entries added yet. Add your first salary entry above.</p>
   </div>
 </div>

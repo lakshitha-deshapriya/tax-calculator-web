@@ -15,10 +15,13 @@ export class SalaryManagementComponent implements OnInit {
   @Input() taxConfig!: TaxConfig;
   @Output() configChanged = new EventEmitter<void>();
 
+  availableFinancialYears: FinancialYear[] = [];
+  selectedFinancialYear!: FinancialYear;
   availableMonths: { value: string; label: string }[] = [];
   newSalaryEntry: Partial<SalaryEntry> = {};
   isAddingSalary: boolean = false;
   supportedCurrencies: { code: string, name: string }[] = [];
+  salaryDateRange: { minDate: string; maxDate: string } = { minDate: '', maxDate: '' };
 
   constructor(
     private exchangeRateService: ExchangeRateService,
@@ -29,13 +32,29 @@ export class SalaryManagementComponent implements OnInit {
     // Load supported currencies
     this.supportedCurrencies = this.exchangeRateService.getSupportedCurrencies();
 
+    // Initialize financial years
+    this.availableFinancialYears = this.taxConfigService.getAvailableFinancialYears();
+    this.selectedFinancialYear = this.taxConfigService.getCurrentFinancialYear();
+
     // Initialize salary data
-    this.availableMonths = this.taxConfigService.getAvailableMonths();
+    this.updateAvailableMonths();
     this.initNewSalaryEntry();
   }
 
   get maxDate(): string {
     return this.formatDateForInput(new Date());
+  }
+
+  updateAvailableMonths(): void {
+    this.availableMonths = this.taxConfigService.getAvailableTaxableMonths(
+      this.selectedFinancialYear, 
+      this.taxConfig.salaryEntries
+    );
+  }
+
+  onFinancialYearChange(): void {
+    this.updateAvailableMonths();
+    this.initNewSalaryEntry();
   }
 
   formatDateForInput(date: Date): string {
@@ -46,15 +65,20 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   initNewSalaryEntry(): void {
-    // Set default month to current month
-    const currentMonth = this.availableMonths[0]?.value || '';
+    // Set default month to the first available month (next available taxable month)
+    const firstAvailableMonth = this.availableMonths[0]?.value || '';
     
     this.newSalaryEntry = {
-      taxableMonth: currentMonth ? new Date(currentMonth + '-01') : new Date(),
-      salaryDate: currentMonth ? new Date(this.taxConfigService.getDefaultSalaryDateForMonth(currentMonth, this.taxConfig.defaultSalaryDate)) : new Date(),
+      taxableMonth: firstAvailableMonth ? new Date(firstAvailableMonth + '-01') : new Date(),
+      salaryDate: firstAvailableMonth ? new Date(this.taxConfigService.getDefaultSalaryDateForMonth(firstAvailableMonth, this.taxConfig.defaultSalaryDate)) : new Date(),
       currency: this.taxConfig.defaultCurrency,
       salaryAmount: 0
     };
+
+    // Update date range for the selected month
+    if (firstAvailableMonth) {
+      this.salaryDateRange = this.taxConfigService.getMonthDateRange(firstAvailableMonth);
+    }
   }
 
   onConfigChanged(): void {
@@ -69,7 +93,10 @@ export class SalaryManagementComponent implements OnInit {
         monthString, 
         this.taxConfig.defaultSalaryDate
       ));
+      this.salaryDateRange = this.taxConfigService.getMonthDateRange(monthString);
     }
+    // Update available months in case salary entries changed
+    this.updateAvailableMonths();
   }
 
   onTaxableMonthChange(): void {
@@ -80,6 +107,9 @@ export class SalaryManagementComponent implements OnInit {
         monthString, 
         this.taxConfig.defaultSalaryDate
       ));
+      
+      // Update date range for the selected month
+      this.salaryDateRange = this.taxConfigService.getMonthDateRange(monthString);
     }
   }
 
@@ -88,6 +118,12 @@ export class SalaryManagementComponent implements OnInit {
     const year = dateObj.getFullYear();
     const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
     return `${year}-${month}`;
+  }
+
+  get sortedSalaryEntries(): SalaryEntry[] {
+    return [...this.taxConfig.salaryEntries].sort((a, b) => {
+      return b.taxableMonth.getTime() - a.taxableMonth.getTime(); // Most recent first
+    });
   }
 
   onAddSalaryEntry(): void {
@@ -119,6 +155,7 @@ export class SalaryManagementComponent implements OnInit {
 
         this.taxConfig.salaryEntries.push(salaryEntry);
         this.saveTaxConfig();
+        this.updateAvailableMonths(); // Update available months after adding entry
         this.initNewSalaryEntry();
         this.isAddingSalary = false;
         
@@ -136,6 +173,8 @@ export class SalaryManagementComponent implements OnInit {
     if (confirm('Are you sure you want to delete this salary entry?')) {
       this.taxConfig.salaryEntries = this.taxConfig.salaryEntries.filter(entry => entry.id !== entryId);
       this.saveTaxConfig();
+      this.updateAvailableMonths(); // Update available months after deleting entry
+      this.initNewSalaryEntry(); // Reinitialize to pick up newly available months
     }
   }
 

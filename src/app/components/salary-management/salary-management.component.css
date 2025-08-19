@@ -49,6 +49,38 @@
   border-color: #ef4444;
 }
 
+/* Financial Year Selector */
+.financial-year-selector {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.financial-year-selector h3 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* No months available message */
+.no-months-available {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #92400e;
+  text-align: center;
+}
+
+.no-months-available p {
+  margin: 0;
+  font-weight: 500;
+}
+
 /* Tax Calculator Specific Styles */
 .salary-section {
   background: white;
@@ -151,7 +183,7 @@
 .entry-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid #f3f4f6;
@@ -161,6 +193,17 @@
   color: #1f2937;
   font-size: 1.1rem;
   font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.financial-year-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
 }
 
 .delete-button {
