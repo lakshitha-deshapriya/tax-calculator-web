@@ -27,7 +27,7 @@ export class AppComponent implements OnInit {
   availableMonths: { value: string; label: string }[] = [];
   newSalaryEntry: Partial<SalaryEntry> = {};
   isAddingSalary: boolean = false;
-  activeTab: 'settings' | 'salary' | 'calculator' = 'settings';
+  activeTab: 'settings' | 'salary' | 'calculator' | 'exchange' = 'settings';
   
   // Tax bracket management
   newTaxBracket: Partial<TaxBracket> = {};
@@ -302,6 +302,61 @@ export class AppComponent implements OnInit {
     return this.taxConfigService.calculateMonthlyTax(annualSalary, this.taxConfig.taxBrackets);
   }
 
+  // Correct monthly tax calculation based on proportional share of total annual tax
+  calculateCorrectMonthlyTax(entry: SalaryEntry, fy: FinancialYear): number {
+    const monthlySalary = entry.salaryInLKR || 0;
+    if (monthlySalary === 0) return 0;
+    
+    // Get cumulative salary up to this month (including this month)
+    const cumulativeSalary = this.getCumulativeSalaryUpToMonth(entry, fy);
+    
+    // Get cumulative salary up to previous month (excluding this month)
+    const previousCumulativeSalary = cumulativeSalary - monthlySalary;
+    
+    // Calculate tax on cumulative salary up to this month
+    const cumulativeTax = this.calculateAnnualTax(cumulativeSalary);
+    
+    // Calculate tax on cumulative salary up to previous month
+    const previousCumulativeTax = this.calculateAnnualTax(previousCumulativeSalary);
+    
+    // Monthly tax is the difference (additional tax due to this month's salary)
+    return cumulativeTax - previousCumulativeTax;
+  }
+
+  getCumulativeSalaryUpToMonth(targetEntry: SalaryEntry, fy: FinancialYear): number {
+    const targetDate = typeof targetEntry.salaryDate === 'string' ? new Date(targetEntry.salaryDate) : targetEntry.salaryDate;
+    
+    return this.getSalaryEntriesForFinancialYear(fy)
+      .filter(entry => {
+        const entryDate = typeof entry.salaryDate === 'string' ? new Date(entry.salaryDate) : entry.salaryDate;
+        return entryDate <= targetDate;
+      })
+      .reduce((sum: number, entry: SalaryEntry) => sum + (entry.salaryInLKR || 0), 0);
+  }
+
+  getCumulativeTaxUpToMonth(targetEntry: SalaryEntry, fy: FinancialYear): number {
+    const cumulativeSalary = this.getCumulativeSalaryUpToMonth(targetEntry, fy);
+    return this.calculateAnnualTax(cumulativeSalary);
+  }
+
+  getTotalTaxForFinancialYear(fy: FinancialYear): number {
+    return this.getSalaryEntriesForFinancialYear(fy).reduce((total: number, entry: SalaryEntry) => {
+      return total + this.calculateCorrectMonthlyTax(entry, fy);
+    }, 0);
+  }
+
+  getNetSalaryForFinancialYear(fy: FinancialYear): number {
+    const totalSalary = this.getTotalSalaryForFinancialYear(fy);
+    const totalTax = this.getTotalTaxForFinancialYear(fy);
+    return totalSalary - totalTax;
+  }
+
+  // Get financial year for a specific entry
+  getFinancialYearForEntry(entry: SalaryEntry): FinancialYear {
+    const monthString = this.formatDateToMonthString(entry.taxableMonth);
+    return this.taxConfigService.getFinancialYear(monthString);
+  }
+
   calculateTaxBreakdown(salaryEntry: SalaryEntry): any[] {
     if (!salaryEntry.salaryInLKR) return [];
     const annualSalary = salaryEntry.salaryInLKR * 12;
@@ -330,6 +385,10 @@ export class AppComponent implements OnInit {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     return months[monthNumber - 1] || '';
+  }
+
+  getDetailedTaxBreakdown(totalSalary: number) {
+    return this.taxConfigService.calculateDetailedTaxBreakdown(totalSalary, this.taxConfig.taxBrackets);
   }
 
   trackBySalaryEntry(index: number, entry: SalaryEntry): string {
