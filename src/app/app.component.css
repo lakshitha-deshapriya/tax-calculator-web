@@ -21,7 +21,7 @@ body {
 
 .header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   padding: 2rem 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -42,10 +42,54 @@ body {
   font-weight: 300;
 }
 
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.tab-button.active {
+  color: #3b82f6;
+  background-color: #eff6ff;
+  border-bottom-color: #3b82f6;
+}
+
 /* Main Content */
 .main-content {
   display: grid;
   gap: 2rem;
+}
+
+/* Tab Content */
+.tab-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Info Card Styles */
@@ -337,46 +381,294 @@ body {
   
   .form-row {
     grid-template-columns: 1fr;
-    gap: 1rem;
   }
   
-  .exchange-rate-section,
-  .tax-calculator-section {
-    padding: 1.5rem;
-  }
-  
-  .rate-details {
-    gap: 0.5rem;
-  }
-  
-  .rate-item {
+  .tab-navigation {
     flex-direction: column;
-    gap: 0.25rem;
-    text-align: center;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .header {
-    padding: 1.5rem 1rem;
-    margin-bottom: 2rem;
   }
   
-  .header h1 {
-    font-size: 1.75rem;
+  .tab-button {
+    border-bottom: 1px solid #e2e8f0;
+    border-right: none;
   }
   
-  .subtitle {
-    font-size: 1rem;
+  .tab-button.active {
+    border-bottom-color: #3b82f6;
   }
   
-  .exchange-rate-section,
-  .tax-calculator-section {
+  .salary-entry-card {
     padding: 1rem;
   }
   
-  .search-button {
-    width: 100%;
-    min-width: auto;
+  .entries-list {
+    grid-template-columns: 1fr;
   }
+}
+
+/* Tax Calculator Specific Styles */
+.settings-section,
+.salary-section,
+.calculator-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.section-description {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Add Salary Form */
+.add-salary-form {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+}
+
+.add-salary-form h3 {
+  color: #374151;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.add-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.add-button:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.add-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Salary Entries */
+.salary-entries {
+  margin-top: 2rem;
+}
+
+.salary-entries h3 {
+  color: #374151;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.entries-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.salary-entry-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.salary-entry-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.entry-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.entry-header h4 {
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.delete-button {
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.delete-button:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.entry-details {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.detail-item .label {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.detail-item .value {
+  font-weight: 500;
+  color: #374151;
+}
+
+.detail-item.highlight {
+  background: #f0f9ff;
+  border-radius: 4px;
+  padding: 0.5rem;
+  border: 1px solid #bae6fd;
+}
+
+.detail-item.highlight .value {
+  color: #0369a1;
+  font-weight: 600;
+}
+
+/* Financial Years */
+.financial-years {
+  display: grid;
+  gap: 2rem;
+}
+
+.financial-year-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.financial-year-card h3 {
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 0.5rem;
+}
+
+.fy-summary {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-item .label {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.summary-item .value {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.coming-soon {
+  color: #f59e0b;
+  font-style: italic;
+}
+
+/* Salary Breakdown */
+.fy-details h4 {
+  color: #374151;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.salary-breakdown {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.breakdown-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  align-items: center;
+}
+
+.breakdown-item .month {
+  font-weight: 500;
+  color: #374151;
+}
+
+.breakdown-item .amount {
+  color: #6b7280;
+  text-align: center;
+}
+
+.breakdown-item .lkr-amount {
+  color: #059669;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  color: #6b7280;
+  padding: 3rem 1rem;
+  font-size: 1.1rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Reference Section */
+.reference-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e5e7eb;
 }

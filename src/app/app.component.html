@@ -1,24 +1,239 @@
 <div class="container">
   <header class="header">
     <h1>{{ title }}</h1>
-    <p class="subtitle">Get real-time currency exchange rates from CBSL</p>
+    <p class="subtitle">Calculate your income tax with real-time currency exchange rates from CBSL</p>
   </header>
 
-  <!-- Data Sources Information -->
-  <div class="info-card">
-    <h3>📊 Data Sources</h3>
-    <p>This application tries multiple sources to get you the most accurate exchange rates:</p>
-    <ol>
-      <li><strong>Primary:</strong> CBSL (Central Bank of Sri Lanka) - Official rates</li>
-      <li><strong>Backup:</strong> ExchangeRate-API - Real-time market rates</li>
-      <li><strong>Fallback:</strong> Static reference data when online sources are unavailable</li>
-    </ol>
-    <p class="note">⚠️ <em>When official CBSL data is not available (weekends/holidays), estimated rates from backup sources are used.</em></p>
+  <!-- Navigation Tabs -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'settings'"
+      (click)="activeTab = 'settings'"
+    >
+      Settings
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'salary'"
+      (click)="activeTab = 'salary'"
+    >
+      Salary Management
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'calculator'"
+      (click)="activeTab = 'calculator'"
+    >
+      Tax Calculator
+    </button>
   </div>
 
   <main class="main-content">
-    <div class="exchange-rate-section">
-      <h2>Currency Exchange Rate Lookup</h2>
+    
+    <!-- Settings Tab -->
+    <div *ngIf="activeTab === 'settings'" class="tab-content">
+      <div class="settings-section">
+        <h2>Default Settings</h2>
+        <p class="section-description">Set your default salary date and currency. These will be used as defaults when adding new salary entries.</p>
+        
+        <div class="form-container">
+          <div class="form-row">
+            <div class="input-group">
+              <label for="defaultSalaryDate">Default Salary Date (Day of Month):</label>
+              <select 
+                id="defaultSalaryDate"
+                [(ngModel)]="taxConfig.defaultSalaryDate"
+                (change)="onDefaultConfigChange()"
+                class="form-select"
+              >
+                <option *ngFor="let day of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]" [value]="day.toString().padStart(2, '0')">
+                  {{ day }}{{ day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th' }} of the month
+                </option>
+              </select>
+            </div>
+            
+            <div class="input-group">
+              <label for="defaultCurrency">Default Currency:</label>
+              <select 
+                id="defaultCurrency"
+                [(ngModel)]="taxConfig.defaultCurrency"
+                (change)="onDefaultConfigChange()"
+                class="form-select"
+              >
+                <option *ngFor="let currency of supportedCurrencies" [value]="currency.code">
+                  {{ currency.code }} - {{ currency.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h3>📊 About Financial Year & Tax Calculation</h3>
+          <ul>
+            <li><strong>Financial Year:</strong> April 1st to March 31st of the next year</li>
+            <li><strong>Exchange Rate:</strong> Uses CBSL buying rate for salary date</li>
+            <li><strong>Taxing Month:</strong> Salary received in a month is taxed in the same month</li>
+            <li><strong>Data Storage:</strong> All data is saved locally in your browser</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Salary Management Tab -->
+    <div *ngIf="activeTab === 'salary'" class="tab-content">
+      <div class="salary-section">
+        <h2>Salary Management</h2>
+        
+        <!-- Add New Salary Entry -->
+        <div class="add-salary-form">
+          <h3>Add New Salary Entry</h3>
+          <div class="form-container">
+            <div class="form-row">
+              <div class="input-group">
+                <label for="taxableMonth">Taxable Month:</label>
+                <select 
+                  id="taxableMonth"
+                  [(ngModel)]="newSalaryEntry.taxableMonth"
+                  (change)="onTaxableMonthChange()"
+                  class="form-select"
+                >
+                  <option *ngFor="let month of availableMonths" [value]="month.value">
+                    {{ month.label }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="input-group">
+                <label for="salaryDate">Salary Date:</label>
+                <input 
+                  type="date"
+                  id="salaryDate"
+                  [(ngModel)]="newSalaryEntry.salaryDate"
+                  class="form-input"
+                  [max]="maxDate"
+                >
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="input-group">
+                <label for="salaryAmount">Salary Amount:</label>
+                <input 
+                  type="number"
+                  id="salaryAmount"
+                  [(ngModel)]="newSalaryEntry.salaryAmount"
+                  class="form-input"
+                  placeholder="Enter salary amount"
+                  min="0"
+                  step="0.01"
+                >
+              </div>
+              
+              <div class="input-group">
+                <label for="salaryCurrency">Currency:</label>
+                <select 
+                  id="salaryCurrency"
+                  [(ngModel)]="newSalaryEntry.currency"
+                  class="form-select"
+                >
+                  <option *ngFor="let currency of supportedCurrencies" [value]="currency.code">
+                    {{ currency.code }} - {{ currency.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            
+            <button 
+              class="add-button"
+              (click)="onAddSalaryEntry()"
+              [disabled]="isAddingSalary || !newSalaryEntry.taxableMonth || !newSalaryEntry.salaryDate || !newSalaryEntry.salaryAmount"
+            >
+              <span *ngIf="!isAddingSalary">Add Salary Entry</span>
+              <span *ngIf="isAddingSalary">Getting Exchange Rate...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing Salary Entries -->
+        <div *ngIf="taxConfig.salaryEntries.length > 0" class="salary-entries">
+          <h3>Your Salary Entries</h3>
+          <div class="entries-list">
+            <div *ngFor="let entry of taxConfig.salaryEntries" class="salary-entry-card">
+              <div class="entry-header">
+                <h4>{{ entry.taxableMonth | date:'MMMM yyyy' }} (Taxable Month)</h4>
+                <button class="delete-button" (click)="onDeleteSalaryEntry(entry.id)">×</button>
+              </div>
+              <div class="entry-details">
+                <div class="detail-item">
+                  <span class="label">Salary Received Date:</span>
+                  <span class="value">{{ entry.salaryDate | date:'mediumDate' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Amount:</span>
+                  <span class="value">{{ entry.currency }} {{ entry.salaryAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Exchange Rate:</span>
+                  <span class="value">LKR {{ entry.exchangeRate | number:'1.2-2' }}</span>
+                </div>
+                <div class="detail-item highlight">
+                  <span class="label">Amount in LKR:</span>
+                  <span class="value">LKR {{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="taxConfig.salaryEntries.length === 0" class="empty-state">
+          <p>No salary entries added yet. Add your first salary entry above.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tax Calculator Tab -->
+    <div *ngIf="activeTab === 'calculator'" class="tab-content">
+      <div class="calculator-section">
+        <h2>Tax Calculator</h2>
+        
+        <div *ngIf="taxConfig.salaryEntries.length === 0" class="empty-state">
+          <p>Please add salary entries in the "Salary Management" tab to calculate taxes.</p>
+        </div>
+
+        <div *ngIf="taxConfig.salaryEntries.length > 0" class="financial-years">
+          <div *ngFor="let fy of getFinancialYears()" class="financial-year-card">
+            <h3>Financial Year {{ fy.label }}</h3>
+            <div class="fy-summary">
+              <div class="summary-item">
+                <span class="label">Total Annual Salary:</span>
+                <span class="value">LKR {{ getTotalSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Tax Calculation:</span>
+                <span class="value coming-soon">Tax brackets will be implemented next</span>
+              </div>
+            </div>
+            
+            <div class="fy-details">
+              <h4>Salary Breakdown</h4>
+              <div class="salary-breakdown">
+                <div *ngFor="let entry of getSalaryEntriesForFinancialYear(fy)" class="breakdown-item">
+                  <span class="month">{{ entry.taxableMonth | date:'MMM yyyy' }}</span>
+                  <span class="amount">{{ entry.currency }} {{ entry.salaryAmount | number:'1.2-2' }}</span>
+                  <span class="lkr-amount">LKR {{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exchange Rate Lookup (for reference) -->
+    <div class="exchange-rate-section reference-section">
+      <h2>Exchange Rate Lookup</h2>
+      <p class="section-description">Look up historical exchange rates for reference.</p>
       
       <div class="form-container">
         <div class="form-row">
@@ -100,13 +315,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Future sections for tax calculation -->
-    <div class="tax-calculator-section" *ngIf="exchangeRateData">
-      <h2>Tax Calculator</h2>
-      <p class="coming-soon">Tax calculation features will be added here next.</p>
-      <p class="rate-info">Current exchange rate: 1 {{ selectedCurrency }} = LKR {{ exchangeRateData.averageRate.toFixed(2) }}</p>
     </div>
   </main>
 </div>
