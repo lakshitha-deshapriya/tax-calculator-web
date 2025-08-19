@@ -1,0 +1,136 @@
+<div class="calculator-section">
+  <h2>Tax Calculator</h2>
+  
+  <div *ngIf="taxConfig.salaryEntries.length === 0" class="empty-state">
+    <p>Please add salary entries in the "Salary Management" tab to calculate taxes.</p>
+  </div>
+
+  <div *ngIf="taxConfig.salaryEntries.length > 0" class="financial-years">
+    <div *ngFor="let fy of getFinancialYears()" class="financial-year-card">
+      <h3>Financial Year {{ fy.label }}</h3>
+      <div class="fy-summary">
+        <div class="summary-item">
+          <span class="label">Total Annual Salary:</span>
+          <span class="value">LKR {{ getTotalSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Total Tax Paid (Cumulative Method):</span>
+          <span class="value tax-amount">LKR {{ getTotalTaxForFinancialYear(fy) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Net Annual Income:</span>
+          <span class="value">LKR {{ getNetSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Effective Tax Rate:</span>
+          <span class="value tax-rate">{{ (getTotalTaxForFinancialYear(fy) / getTotalSalaryForFinancialYear(fy) * 100) | number:'1.1-1' }}%</span>
+        </div>
+      </div>
+      
+      <div class="fy-details">
+        <h4>Monthly Salary & Tax Breakdown</h4>
+        <div class="monthly-breakdown-container">
+          <div *ngFor="let entry of getSalaryEntriesForFinancialYear(fy); trackBy: trackBySalaryEntry" class="monthly-card">
+            <!-- Month Header -->
+            <div class="month-header">
+              <h5 class="month-title">{{ entry.taxableMonth | date:'MMM yyyy' }}</h5>
+              <span class="received-date">Received: {{ entry.salaryDate | date:'MMM d' }}</span>
+            </div>
+
+            <!-- Salary Information -->
+            <div class="salary-info-grid">
+              <div class="salary-column">
+                <div class="info-item currency-info">
+                  <span class="currency-badge">{{ entry.currency }}</span>
+                  <span class="currency-amount">{{ entry.salaryAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="info-item lkr-info">
+                  <span class="label">LKR</span>
+                  <span class="lkr-amount">{{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                </div>
+                <div class="info-item rate-info">
+                  <span class="label">Rate:</span>
+                  <span class="rate-value">{{ entry.exchangeRate | number:'1.2-2' }}</span>
+                </div>
+              </div>
+
+              <div class="tax-column">
+                <div class="info-item tax-info">
+                  <span class="tax-label">Monthly Tax:</span>
+                  <span class="tax-amount">LKR {{ calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                </div>
+                <div class="info-item net-info">
+                  <span class="net-label">Net:</span>
+                  <span class="net-amount">LKR {{ (entry.salaryInLKR || 0) - calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                </div>
+              </div>
+
+              <div class="action-column">
+                <button 
+                  class="tax-details-button"
+                  [class.active]="entry.showTaxBreakdown"
+                  (click)="entry.showTaxBreakdown = !entry.showTaxBreakdown"
+                >
+                  Show Tax Details
+                </button>
+              </div>
+            </div>
+
+            <!-- Tax Breakdown Details -->
+            <div *ngIf="entry.showTaxBreakdown" class="tax-breakdown-panel">
+              <div class="breakdown-header">
+                <h6>Monthly Tax Calculation Details (Cumulative Method)</h6>
+              </div>
+              
+              <div class="calculation-steps">
+                <div class="step-item">
+                  <span class="step-label">This Month's Salary:</span>
+                  <span class="step-value">LKR {{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                </div>
+                <div class="step-item">
+                  <span class="step-label">Cumulative Salary (Up to this month):</span>
+                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, fy) | number:'1.2-2' }}</span>
+                </div>
+                <div class="step-item">
+                  <span class="step-label">Previous Cumulative Salary:</span>
+                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, fy) - (entry.salaryInLKR || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="step-item">
+                  <span class="step-label">Tax on Cumulative Salary:</span>
+                  <span class="step-value">LKR {{ getCumulativeTaxUpToMonth(entry, fy) | number:'1.2-2' }}</span>
+                </div>
+                <div class="step-item">
+                  <span class="step-label">Tax on Previous Cumulative:</span>
+                  <span class="step-value">LKR {{ calculateAnnualTax(getCumulativeSalaryUpToMonth(entry, fy) - (entry.salaryInLKR || 0)) | number:'1.2-2' }}</span>
+                </div>
+                <div class="step-item highlight-step">
+                  <span class="step-label">Monthly Tax (Difference):</span>
+                  <span class="step-value final-tax">LKR {{ calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                </div>
+              </div>
+              
+              <div class="tax-brackets-section">
+                <h6>Tax Brackets Applied (Based on Cumulative: LKR {{ getCumulativeSalaryUpToMonth(entry, fy) | number:'1.0-0' }})</h6>
+                <div class="brackets-grid">
+                  <div *ngFor="let item of getBracketSpecificTaxBreakdown(getCumulativeSalaryUpToMonth(entry, fy))" class="bracket-row">
+                    <div class="bracket-range">
+                      <span>LKR {{ item.rangeMin | number:'1.0-0' }}</span>
+                      <span *ngIf="item.rangeMax; else infinitySpan"> - {{ item.rangeMax | number:'1.0-0' }}</span>
+                      <ng-template #infinitySpan> and above</ng-template>
+                    </div>
+                    <div class="bracket-rate">
+                      {{ formatPercentage(item.rate) }}
+                    </div>
+                    <div class="bracket-tax">
+                      LKR {{ item.tax | number:'1.2-2' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
