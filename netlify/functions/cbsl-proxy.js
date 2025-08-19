@@ -141,6 +141,25 @@ exports.handler = async (event, context) => {
     console.log(`Fetching exchange rate for ${currency} from ${startDate} to ${endDate}, exact date needed: ${exactDate}`);
     console.log('Request body:', JSON.parse(event.body));
     
+    // Check if the dates are in the future (CBSL won't have data for future dates)
+    const today = new Date();
+    const requestDate = new Date(exactDate);
+    
+    if (requestDate > today) {
+      console.log('Requested date is in the future, CBSL will not have this data');
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          success: false,
+          error: `Exchange rates are not available for future dates. CBSL only publishes rates for past and current working days. Requested date: ${exactDate}, Today: ${today.toISOString().split('T')[0]}`
+        })
+      };
+    }
+    
     // Create the exact form data structure from CBSL
     const currencyMapping = getCurrencyMapping(currency);
     console.log('Currency mapping:', currencyMapping);
@@ -153,6 +172,19 @@ exports.handler = async (event, context) => {
     formData.append('txtEnd', endDate);
     formData.append('chk_cur[]', currencyMapping);
     formData.append('submit_button', 'Submit');
+    
+    console.log('Form data being sent to CBSL:', formData.toString());
+    
+    const formData = new URLSearchParams();
+    formData.append('lookupPage', 'lookup_daily_exchange_rates.php');
+    formData.append('startRange', '2006-11-11');
+    formData.append('rangeType', 'dates');
+    formData.append('txtStart', startDate);
+    formData.append('txtEnd', endDate);
+    formData.append('chk_cur[]', currencyMapping);
+    formData.append('submit_button', 'Submit');
+    
+    console.log('Form data being sent to CBSL:', formData.toString());
     
     // Make request to CBSL
     const response = await axios.post(
@@ -177,7 +209,17 @@ exports.handler = async (event, context) => {
     }
     
     console.log('CBSL Response received, length:', response.data.length);
-    console.log('CBSL Response preview (first 500 chars):', response.data.substring(0, 500));
+    console.log('CBSL Response preview (first 1000 chars):', response.data.substring(0, 1000));
+    
+    // Let's also check if there's any table content
+    const $ = cheerio.load(response.data);
+    const tables = $('table');
+    console.log('Number of tables found:', tables.length);
+    
+    tables.each(function(i) {
+      console.log(`Table ${i} content:`, $(this).text().trim().substring(0, 200));
+    });
+    
     console.log('CBSL Response parsing...');
     
     const exchangeRateData = parseCBSLResponse(response.data, currency, exactDate);
