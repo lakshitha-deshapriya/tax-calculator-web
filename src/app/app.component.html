@@ -9,10 +9,7 @@
       <!-- Profile Button -->
       <div class="profile-section">
         <div *ngIf="!isSignedIn" class="sign-in-btn-container">
-          <button class="sign-in-btn" (click)="signIn()">
-            <span class="google-icon">G</span>
-            Sign In
-          </button>
+          <div #googleSignInButton class="google-signin-wrapper"></div>
         </div>
         
         <div *ngIf="isSignedIn && currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">>

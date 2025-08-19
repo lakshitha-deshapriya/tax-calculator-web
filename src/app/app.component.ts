@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -20,7 +20,7 @@ import { DebugPanelComponent } from './components/debug-panel/debug-panel.compon
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   title = 'Foreign Income Tax Calculator';
 
   // Tax calculator related properties
@@ -35,6 +35,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private userSubscription?: Subscription;
 
   @ViewChild(TaxCalculatorComponent) taxCalculatorComponent?: TaxCalculatorComponent;
+  @ViewChild('googleSignInButton') googleSignInButton?: ElementRef;
 
   constructor(
     private exchangeRateService: ExchangeRateService,
@@ -63,6 +64,15 @@ export class AppComponent implements OnInit, OnDestroy {
       if (!this.isSignedIn && this.activeTab === 'distribution') {
         this.activeTab = 'settings';
       }
+
+      // Re-render Google button when sign-in state changes
+      if (!this.isSignedIn && this.googleSignInButton) {
+        setTimeout(() => {
+          if (this.googleSignInButton) {
+            this.googleAuthService.renderSignInButton(this.googleSignInButton.nativeElement);
+          }
+        }, 100);
+      }
     });
   }
 
@@ -70,6 +80,15 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.userSubscription) {
       this.userSubscription.unsubscribe();
     }
+  }
+
+  ngAfterViewInit() {
+    // Render Google Sign-In button after view initialization
+    setTimeout(() => {
+      if (this.googleSignInButton && !this.isSignedIn) {
+        this.googleAuthService.renderSignInButton(this.googleSignInButton.nativeElement);
+      }
+    }, 100);
   }
 
   signIn(): void {

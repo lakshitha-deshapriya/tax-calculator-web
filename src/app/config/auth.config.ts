@@ -11,9 +11,9 @@ export const authConfig = {
   
   // Optional: You can add different client IDs for different environments
   development: {
-    googleClientId: 'YOUR_DEV_CLIENT_ID_HERE'
+    googleClientId: '615158904505-v8qrmar64m99vs5eqf16sp5ssaf04hti.apps.googleusercontent.com'
   },
   production: {
-    googleClientId: 'YOUR_PROD_CLIENT_ID_HERE'
+    googleClientId: '615158904505-v8qrmar64m99vs5eqf16sp5ssaf04hti.apps.googleusercontent.com'
   }
 };

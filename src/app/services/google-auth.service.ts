@@ -81,9 +81,12 @@ export class GoogleAuthService {
   }
 
   private handleCredentialResponse(response: any): void {
+    console.log('Received credential response:', response);
     try {
       // Decode the JWT token to get user information
       const payload = this.decodeJwtPayload(response.credential);
+      console.log('Decoded JWT payload:', payload);
+      
       const user: GoogleUser = {
         id: payload.sub,
         name: payload.name,
@@ -93,10 +96,59 @@ export class GoogleAuthService {
 
       this.userSubject.next(user);
       this.storeUser(user);
-      console.log('User signed in:', user);
+      console.log('✅ User signed in successfully:', user);
+      
+      // Show success notification
+      this.showNotification('✅ Successfully signed in!', 'success');
+      
     } catch (error) {
-      console.error('Error handling credential response:', error);
+      console.error('❌ Error handling credential response:', error);
+      this.showNotification('❌ Sign-in failed. Please try again.', 'error');
     }
+  }
+
+  private showNotification(message: string, type: 'success' | 'error'): void {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      z-index: 10001;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      background: ${type === 'success' ? '#28a745' : '#dc3545'};
+      animation: slideIn 0.3s ease;
+    `;
+    
+    notification.textContent = message;
+    
+    // Add slide-in animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        notification.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }
+    }, 3000);
   }
 
   private decodeJwtPayload(token: string): any {
@@ -114,22 +166,156 @@ export class GoogleAuthService {
   }
 
   public signIn(): void {
-    console.log('Sign in requested, initialized:', this.isInitialized);
-    console.log('Google available:', !!window.google);
+    console.log('🔑 Sign in requested via fallback button');
+    console.log('🔑 Initialized:', this.isInitialized, 'Google available:', !!window.google);
     
     if (window.google && this.isInitialized) {
-      try {
-        console.log('Calling Google prompt...');
-        window.google.accounts.id.prompt();
-      } catch (error) {
-        console.error('Error during sign in:', error);
-        this.fallbackSignIn();
-      }
+      console.log('🔑 Showing sign-in modal as fallback...');
+      this.showAlternativeSignIn();
     } else {
-      console.error('Google Sign-In not properly initialized');
-      // Retry initialization
-      setTimeout(() => this.initializeGoogleAuth(), 1000);
+      console.error('❌ Google Sign-In not properly initialized');
+      this.showNotification('❌ Sign-in service not ready. Please refresh the page.', 'error');
     }
+  }
+
+  private triggerDirectSignIn(): void {
+    // Create a temporary invisible button to trigger sign-in
+    const tempContainer = document.createElement('div');
+    tempContainer.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      left: -1000px;
+      visibility: hidden;
+      pointer-events: none;
+    `;
+    document.body.appendChild(tempContainer);
+
+    try {
+      // Render the Google button in the temporary container
+      if (window.google) {
+        window.google.accounts.id.renderButton(tempContainer, {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          text: 'signin_with',
+          shape: 'rectangular'
+        });
+
+        // Wait for button to render, then trigger click
+        setTimeout(() => {
+          const iframe = tempContainer.querySelector('iframe');
+          const button = tempContainer.querySelector('div[role="button"]');
+          
+          if (iframe) {
+            // Try to trigger the iframe
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            iframe.dispatchEvent(clickEvent);
+            console.log('Triggered sign-in via iframe');
+          } else if (button) {
+            // Fallback to button element
+            (button as HTMLElement).click();
+            console.log('Triggered sign-in via button');
+          } else {
+            console.log('Could not find clickable element, showing alternative');
+            this.showAlternativeSignIn();
+          }
+
+          // Clean up after attempt
+          setTimeout(() => {
+            if (document.body.contains(tempContainer)) {
+              document.body.removeChild(tempContainer);
+            }
+          }, 1000);
+
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error in direct sign-in:', error);
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+      this.showAlternativeSignIn();
+    }
+  }
+
+  private showAlternativeSignIn(): void {
+    console.log('Showing alternative sign-in method');
+    
+    // Create a modal-like overlay for manual sign-in
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    `;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    `;
+    
+    modal.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; color: #333;">Sign in with Google</h3>
+      <p style="margin: 0 0 20px 0; color: #666; line-height: 1.5;">
+        Click the button below to sign in with your Google account.
+        This will open a new window for secure authentication.
+      </p>
+      <div id="google-signin-button" style="margin: 20px 0;"></div>
+      <button id="cancel-signin" style="
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 15px;
+      ">Cancel</button>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Render Google Sign-In button in the modal
+    const buttonContainer = modal.querySelector('#google-signin-button');
+    if (buttonContainer && window.google) {
+      this.renderSignInButton(buttonContainer as HTMLElement);
+    }
+    
+    // Handle cancel button
+    modal.querySelector('#cancel-signin')?.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+    
+    // Close modal when clicking outside
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+    
+    // Auto-close after successful sign-in
+    const subscription = this.user$.subscribe(user => {
+      if (user && document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+        subscription.unsubscribe();
+      }
+    });
   }
 
   private fallbackSignIn(): void {
@@ -140,12 +326,21 @@ export class GoogleAuthService {
   }
 
   public signOut(): void {
+    console.log('Signing out user...');
+    const currentUser = this.getCurrentUser();
+    
     this.userSubject.next(null);
     this.clearStoredUser();
+    
     if (window.google) {
       window.google.accounts.id.disableAutoSelect();
     }
-    console.log('User signed out');
+    
+    console.log('✅ User signed out successfully');
+    
+    if (currentUser) {
+      this.showNotification(`👋 Goodbye, ${currentUser.name}!`, 'success');
+    }
   }
 
   public renderSignInButton(element: HTMLElement): void {
@@ -164,28 +359,68 @@ export class GoogleAuthService {
     if (window.google && this.isInitialized && element) {
       try {
         console.log('Rendering Google Sign-In button with Client ID:', this.CLIENT_ID);
-        window.google.accounts.id.renderButton(element, {
+        
+        // Clear any existing content
+        element.innerHTML = '';
+        
+        // Create a wrapper for better control
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'width: 100%; display: flex; justify-content: center;';
+        
+        window.google.accounts.id.renderButton(wrapper, {
           theme: 'outline',
           size: 'large',
           type: 'standard',
           text: 'signin_with',
           shape: 'rectangular',
           logo_alignment: 'left',
-          width: '250'
+          width: Math.min(element.offsetWidth || 250, 400)
         });
-        console.log('Google Sign-In button rendered successfully');
+        
+        element.appendChild(wrapper);
+        
+        console.log('✅ Google Sign-In button rendered successfully');
+        
+        // Add success feedback when button is interacted with
+        const checkForInteraction = () => {
+          const iframe = wrapper.querySelector('iframe');
+          if (iframe) {
+            iframe.addEventListener('click', () => {
+              console.log('🖱️ Google Sign-In button clicked');
+              this.showNotification('Opening sign-in window...', 'success');
+            });
+            
+            // Also listen for mouse events to provide feedback
+            iframe.addEventListener('mouseenter', () => {
+              wrapper.style.transform = 'scale(1.02)';
+              wrapper.style.transition = 'transform 0.2s ease';
+            });
+            
+            iframe.addEventListener('mouseleave', () => {
+              wrapper.style.transform = 'scale(1)';
+            });
+          }
+        };
+        
+        // Check after a brief delay to ensure iframe is loaded
+        setTimeout(checkForInteraction, 500);
+        
       } catch (error) {
-        console.error('Error rendering Google Sign-In button:', error);
+        console.error('❌ Error rendering Google Sign-In button:', error);
         element.innerHTML = `
           <div style="padding: 15px; border: 2px solid #ff6b6b; border-radius: 8px; text-align: center; color: #721c24; background: #f8d7da;">
             <p><strong>Google Sign-In Error</strong></p>
             <p style="font-size: 14px; margin: 10px 0;">Unable to load sign-in button. Check console for details.</p>
             <p style="font-size: 12px; margin: 5px 0;">Current origin: ${window.location.origin}</p>
+            <button onclick="window.location.reload();" style="
+              background: #007bff; color: white; border: none; padding: 8px 16px; 
+              border-radius: 4px; cursor: pointer; margin-top: 10px;
+            ">🔄 Retry</button>
           </div>
         `;
       }
     } else {
-      console.warn('Google Sign-In not ready:', { 
+      console.warn('⏳ Google Sign-In not ready:', { 
         google: !!window.google, 
         initialized: this.isInitialized, 
         element: !!element 
@@ -193,17 +428,44 @@ export class GoogleAuthService {
       
       element.innerHTML = `
         <div style="padding: 15px; border: 2px solid #ffeaa7; border-radius: 8px; text-align: center; color: #856404; background: #fff3cd;">
-          <p><strong>Loading Google Sign-In...</strong></p>
-          <p style="font-size: 14px; margin: 10px 0;">Please wait while we initialize the sign-in system.</p>
+          <p><strong>⏳ Loading Google Sign-In...</strong></p>
+          <p style="font-size: 14px; margin: 10px 0;">Initializing secure authentication...</p>
+          <div style="margin: 15px 0;">
+            <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #856404; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+          </div>
         </div>
+        <style>
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
       `;
       
-      // Retry after a delay
-      setTimeout(() => {
-        if (window.google && this.isInitialized) {
-          this.renderSignInButton(element);
-        }
-      }, 2000);
+      // Retry after a delay with exponential backoff
+      let retryCount = 0;
+      const maxRetries = 5;
+      
+      const retryRender = () => {
+        setTimeout(() => {
+          if (window.google && this.isInitialized && element && retryCount < maxRetries) {
+            this.renderSignInButton(element);
+          } else if (retryCount >= maxRetries) {
+            element.innerHTML = `
+              <div style="padding: 15px; border: 2px solid #dc3545; border-radius: 8px; text-align: center; color: #721c24; background: #f8d7da;">
+                <p><strong>❌ Failed to Load Google Sign-In</strong></p>
+                <p style="font-size: 14px; margin: 10px 0;">Please refresh the page and try again.</p>
+                <button onclick="window.location.reload();" style="
+                  background: #dc3545; color: white; border: none; padding: 8px 16px; 
+                  border-radius: 4px; cursor: pointer; margin-top: 10px;
+                ">🔄 Refresh Page</button>
+              </div>
+            `;
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            retryRender();
+          }
+        }, Math.pow(2, retryCount) * 1000); // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+      };
+      
+      retryRender();
     }
   }
 

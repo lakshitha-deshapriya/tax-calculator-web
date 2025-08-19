@@ -59,6 +59,13 @@ body {
   position: relative;
 }
 
+.google-signin-wrapper {
+  min-width: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .sign-in-btn {
   display: flex;
   align-items: center;
