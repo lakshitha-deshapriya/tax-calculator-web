@@ -206,7 +206,22 @@ exports.handler = async (event, context) => {
     console.log('Number of tables found:', tables.length);
     
     tables.each(function(i) {
-      console.log(`Table ${i} content:`, $(this).text().trim().substring(0, 200));
+      console.log('\n=== TABLE ' + i + ' ===');
+      console.log('Table ' + i + ' HTML:', $(this).html());
+      console.log('Table ' + i + ' text content:', $(this).text().trim());
+      
+      const rows = $(this).find('tr');
+      console.log('Table ' + i + ' has ' + rows.length + ' rows');
+      
+      rows.each(function(rowIndex) {
+        const cells = $(this).find('td, th');
+        const cellTexts = [];
+        cells.each(function() {
+          cellTexts.push($(this).text().trim());
+        });
+        console.log('Table ' + i + ', Row ' + rowIndex + ': [' + cellTexts.join('] [') + ']');
+      });
+      console.log('=== END TABLE ' + i + ' ===\n');
     });
     
     console.log('CBSL Response parsing...');
