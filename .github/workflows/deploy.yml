@@ -14,6 +14,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
+      actions: write
 
     steps:
     - name: Checkout
@@ -34,6 +35,8 @@ jobs:
     - name: Setup Pages
       if: github.ref == 'refs/heads/main'
       uses: actions/configure-pages@v4
+      with:
+        enablement: true
 
     - name: Upload artifact
       if: github.ref == 'refs/heads/main'
