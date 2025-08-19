@@ -1,5 +1,5 @@
 [build]
-  publish = "dist/tax-calculator-web"
+  publish = "dist/tax-calculator-web/browser"
   command = "npm run build"
 
 [functions]
