@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ExchangeRateProductionService as ExchangeRateService } from './services/exchange-rate-production.service';
@@ -22,6 +22,8 @@ export class AppComponent implements OnInit {
   taxConfig: TaxConfig;
   activeTab: 'settings' | 'salary' | 'calculator' | 'exchange' = 'settings';
 
+  @ViewChild(TaxCalculatorComponent) taxCalculatorComponent?: TaxCalculatorComponent;
+
   constructor(
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService
@@ -41,5 +43,9 @@ export class AppComponent implements OnInit {
 
   onConfigChanged(): void {
     console.log('Tax configuration updated');
+    // Update tax calculator when config changes
+    if (this.taxCalculatorComponent) {
+      this.taxCalculatorComponent.onTaxConfigChange();
+    }
   }
 }

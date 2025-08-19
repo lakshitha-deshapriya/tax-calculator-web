@@ -5,32 +5,54 @@
     <p>Please add salary entries in the "Salary Management" tab to calculate taxes.</p>
   </div>
 
-  <div *ngIf="taxConfig.salaryEntries.length > 0" class="financial-years">
-    <div *ngFor="let fy of getFinancialYears()" class="financial-year-card">
-      <h3>Financial Year {{ fy.label }}</h3>
-      <div class="fy-summary">
-        <div class="summary-item">
-          <span class="label">Total Annual Salary:</span>
-          <span class="value">LKR {{ getTotalSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Total Tax Paid (Cumulative Method):</span>
-          <span class="value tax-amount">LKR {{ getTotalTaxForFinancialYear(fy) | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Net Annual Income:</span>
-          <span class="value">LKR {{ getNetSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Effective Tax Rate:</span>
-          <span class="value tax-rate">{{ (getTotalTaxForFinancialYear(fy) / getTotalSalaryForFinancialYear(fy) * 100) | number:'1.1-1' }}%</span>
+  <div *ngIf="taxConfig.salaryEntries.length > 0">
+    <!-- Financial Year Selection -->
+    <div class="financial-year-selector">
+      <h3>Select Financial Year</h3>
+      <div class="form-container">
+        <div class="input-group">
+          <label for="calculatorFinancialYear">Financial Year:</label>
+          <select 
+            id="calculatorFinancialYear"
+            [(ngModel)]="selectedFinancialYear"
+            (change)="onFinancialYearChange()"
+            class="form-select"
+          >
+            <option *ngFor="let fy of availableFinancialYears; trackBy: trackByFinancialYear" [ngValue]="fy">
+              {{ fy.label }}
+            </option>
+          </select>
         </div>
       </div>
-      
-      <div class="fy-details">
-        <h4>Monthly Salary & Tax Breakdown</h4>
-        <div class="monthly-breakdown-container">
-          <div *ngFor="let entry of getSalaryEntriesForFinancialYear(fy); trackBy: trackBySalaryEntry" class="monthly-card">
+    </div>
+
+    <!-- Selected Financial Year Details -->
+    <div *ngIf="selectedFinancialYear" class="financial-year-details">
+      <div class="financial-year-card">
+        <h3>Financial Year {{ selectedFinancialYear.label }}</h3>
+        <div class="fy-summary">
+          <div class="summary-item">
+            <span class="label">Total Annual Salary:</span>
+            <span class="value">LKR {{ getTotalSalaryForSelectedYear() | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Total Tax Paid (Cumulative Method):</span>
+            <span class="value tax-amount">LKR {{ getTotalTaxForSelectedYear() | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Net Annual Income:</span>
+            <span class="value">LKR {{ getNetSalaryForSelectedYear() | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Effective Tax Rate:</span>
+            <span class="value tax-rate">{{ getTotalSalaryForSelectedYear() > 0 ? (getTotalTaxForSelectedYear() / getTotalSalaryForSelectedYear() * 100) : 0 | number:'1.1-1' }}%</span>
+          </div>
+        </div>
+        
+        <div class="fy-details">
+          <h4>Monthly Salary & Tax Breakdown</h4>
+          <div class="monthly-breakdown-container">
+            <div *ngFor="let entry of getSalaryEntriesForSelectedYear(); trackBy: trackBySalaryEntry" class="monthly-card">
             <!-- Month Header -->
             <div class="month-header">
               <h5 class="month-title">{{ entry.taxableMonth | date:'MMM yyyy' }}</h5>
@@ -57,11 +79,11 @@
               <div class="tax-column">
                 <div class="info-item tax-info">
                   <span class="tax-label">Monthly Tax:</span>
-                  <span class="tax-amount">LKR {{ calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                  <span class="tax-amount">LKR {{ calculateCorrectMonthlyTax(entry, selectedFinancialYear) | number:'1.2-2' }}</span>
                 </div>
                 <div class="info-item net-info">
                   <span class="net-label">Net:</span>
-                  <span class="net-amount">LKR {{ (entry.salaryInLKR || 0) - calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                  <span class="net-amount">LKR {{ (entry.salaryInLKR || 0) - calculateCorrectMonthlyTax(entry, selectedFinancialYear) | number:'1.2-2' }}</span>
                 </div>
               </div>
 
@@ -89,30 +111,30 @@
                 </div>
                 <div class="step-item">
                   <span class="step-label">Cumulative Salary (Up to this month):</span>
-                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, fy) | number:'1.2-2' }}</span>
+                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, selectedFinancialYear) | number:'1.2-2' }}</span>
                 </div>
                 <div class="step-item">
                   <span class="step-label">Previous Cumulative Salary:</span>
-                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, fy) - (entry.salaryInLKR || 0) | number:'1.2-2' }}</span>
+                  <span class="step-value">LKR {{ getCumulativeSalaryUpToMonth(entry, selectedFinancialYear) - (entry.salaryInLKR || 0) | number:'1.2-2' }}</span>
                 </div>
                 <div class="step-item">
                   <span class="step-label">Tax on Cumulative Salary:</span>
-                  <span class="step-value">LKR {{ getCumulativeTaxUpToMonth(entry, fy) | number:'1.2-2' }}</span>
+                  <span class="step-value">LKR {{ getCumulativeTaxUpToMonth(entry, selectedFinancialYear) | number:'1.2-2' }}</span>
                 </div>
                 <div class="step-item">
                   <span class="step-label">Tax on Previous Cumulative:</span>
-                  <span class="step-value">LKR {{ calculateAnnualTax(getCumulativeSalaryUpToMonth(entry, fy) - (entry.salaryInLKR || 0)) | number:'1.2-2' }}</span>
+                  <span class="step-value">LKR {{ calculateAnnualTax(getCumulativeSalaryUpToMonth(entry, selectedFinancialYear) - (entry.salaryInLKR || 0)) | number:'1.2-2' }}</span>
                 </div>
                 <div class="step-item highlight-step">
                   <span class="step-label">Monthly Tax (Difference):</span>
-                  <span class="step-value final-tax">LKR {{ calculateCorrectMonthlyTax(entry, fy) | number:'1.2-2' }}</span>
+                  <span class="step-value final-tax">LKR {{ calculateCorrectMonthlyTax(entry, selectedFinancialYear) | number:'1.2-2' }}</span>
                 </div>
               </div>
               
               <div class="tax-brackets-section">
-                <h6>Tax Brackets Applied (Based on Cumulative: LKR {{ getCumulativeSalaryUpToMonth(entry, fy) | number:'1.0-0' }})</h6>
+                <h6>Tax Brackets Applied (Based on Cumulative: LKR {{ getCumulativeSalaryUpToMonth(entry, selectedFinancialYear) | number:'1.0-0' }})</h6>
                 <div class="brackets-grid">
-                  <div *ngFor="let item of getBracketSpecificTaxBreakdown(getCumulativeSalaryUpToMonth(entry, fy))" class="bracket-row">
+                  <div *ngFor="let item of getBracketSpecificTaxBreakdown(getCumulativeSalaryUpToMonth(entry, selectedFinancialYear))" class="bracket-row">
                     <div class="bracket-range">
                       <span>LKR {{ item.rangeMin | number:'1.0-0' }}</span>
                       <span *ngIf="item.rangeMax; else infinitySpan"> - {{ item.rangeMax | number:'1.0-0' }}</span>

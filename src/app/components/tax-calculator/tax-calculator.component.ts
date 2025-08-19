@@ -1,18 +1,47 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { TaxConfig, SalaryEntry, FinancialYear } from '../../models/tax-config.model';
 
 @Component({
   selector: 'app-tax-calculator',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './tax-calculator.component.html',
   styleUrl: './tax-calculator.component.css'
 })
-export class TaxCalculatorComponent {
+export class TaxCalculatorComponent implements OnInit {
   @Input() taxConfig!: TaxConfig;
 
+  availableFinancialYears: FinancialYear[] = [];
+  selectedFinancialYear!: FinancialYear;
+
   constructor(private taxConfigService: TaxConfigService) {}
+
+  ngOnInit() {
+    this.updateAvailableFinancialYears();
+  }
+
+  updateAvailableFinancialYears(): void {
+    const financialYears = new Map<string, FinancialYear>();
+    
+    this.taxConfig.salaryEntries.forEach(entry => {
+      const monthString = this.formatDateToMonthString(entry.taxableMonth);
+      const fy = this.taxConfigService.getFinancialYear(monthString);
+      financialYears.set(fy.label, fy);
+    });
+
+    this.availableFinancialYears = Array.from(financialYears.values()).sort((a, b) => b.startYear - a.startYear);
+    
+    // Set default selected financial year to the most recent one
+    if (this.availableFinancialYears.length > 0) {
+      this.selectedFinancialYear = this.availableFinancialYears[0];
+    }
+  }
+
+  onFinancialYearChange(): void {
+    // Financial year changed, UI will automatically update due to reactive data binding
+  }
 
   getFinancialYears(): FinancialYear[] {
     const financialYears = new Map<string, FinancialYear>();
@@ -28,6 +57,27 @@ export class TaxCalculatorComponent {
 
   getTotalSalaryForFinancialYear(financialYear: FinancialYear): number {
     return this.taxConfigService.calculateFinancialYearSalary(this.taxConfig.salaryEntries, financialYear);
+  }
+
+  // Methods for selected financial year
+  getTotalSalaryForSelectedYear(): number {
+    if (!this.selectedFinancialYear) return 0;
+    return this.getTotalSalaryForFinancialYear(this.selectedFinancialYear);
+  }
+
+  getSalaryEntriesForSelectedYear(): SalaryEntry[] {
+    if (!this.selectedFinancialYear) return [];
+    return this.getSalaryEntriesForFinancialYear(this.selectedFinancialYear);
+  }
+
+  getTotalTaxForSelectedYear(): number {
+    if (!this.selectedFinancialYear) return 0;
+    return this.getTotalTaxForFinancialYear(this.selectedFinancialYear);
+  }
+
+  getNetSalaryForSelectedYear(): number {
+    if (!this.selectedFinancialYear) return 0;
+    return this.getNetSalaryForFinancialYear(this.selectedFinancialYear);
   }
 
   getSalaryEntriesForFinancialYear(financialYear: FinancialYear): SalaryEntry[] {
@@ -145,5 +195,14 @@ export class TaxCalculatorComponent {
 
   trackBySalaryEntry(index: number, entry: SalaryEntry): string {
     return entry.id;
+  }
+
+  trackByFinancialYear(index: number, item: FinancialYear): string {
+    return item.label;
+  }
+
+  // Called when tax config changes from parent component
+  onTaxConfigChange(): void {
+    this.updateAvailableFinancialYears();
   }
 }
