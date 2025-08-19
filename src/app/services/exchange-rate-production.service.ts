@@ -63,20 +63,9 @@ export class ExchangeRateProductionService {
       // Store the original requested date for exact matching
       const originalRequestedDate = startDate.getTime() === endDate.getTime() ? startDate : endDate;
       
-      // If looking for a specific date, expand the search range to find data, but we'll filter for exact date
-      let actualStartDateStr = startDateStr;
-      let actualEndDateStr = endDateStr;
-      
-      if (startDate.getTime() === endDate.getTime()) {
-        const expandedStartDate = new Date(startDate);
-        expandedStartDate.setDate(startDate.getDate() - 3);
-        
-        const expandedEndDate = new Date(endDate);
-        expandedEndDate.setDate(endDate.getDate() + 3);
-        
-        actualStartDateStr = this.formatDate(expandedStartDate);
-        actualEndDateStr = this.formatDate(expandedEndDate);
-      }
+      // Always use the exact date range - no expansion to ensure exact date matching
+      const actualStartDateStr = startDateStr;
+      const actualEndDateStr = endDateStr;
 
       // Use our Netlify function to fetch CBSL data
       const requestBody = {

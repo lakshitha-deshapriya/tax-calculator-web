@@ -92,7 +92,7 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
       return null;
     }
     
-    // If exactDate is specified, find the exact match
+    // Only return data if we have an exact match for the requested date
     if (exactDate) {
       const exactMatch = rates.find(rate => {
         const rateDate = new Date(rate.date);
@@ -100,12 +100,11 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
         return rateDate.toDateString() === targetDate.toDateString();
       });
       
-      if (exactMatch) {
-        return exactMatch;
-      }
+      // Return only the exact match, not any fallback
+      return exactMatch || null;
     }
     
-    // Return the most recent rate
+    // If no exactDate specified, return the most recent rate (backwards compatibility)
     rates.sort((a, b) => new Date(b.date) - new Date(a.date));
     return rates[0];
     
@@ -255,12 +254,10 @@ exports.handler = async (event, context) => {
         },
         body: JSON.stringify({
           success: false,
-          error: `No exchange rate data found for ${currency} in the specified date range`
+          error: `No exchange rate data found for ${currency} on ${exactDate}. Exchange rates are only available for working days when CBSL publishes them. Please try a different date.`
         })
       };
     }
-    
-    console.log('Exchange rate data found:', exchangeRateData);
     
     return {
       statusCode: 200,
