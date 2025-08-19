@@ -20,21 +20,32 @@ const getCurrencyMapping = (currency) => {
 // Parse the HTML response from CBSL
 const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
   try {
+    console.log('Parsing HTML for currency:', targetCurrency, 'exactDate:', exactDate);
     const $ = cheerio.load(htmlString);
     const rates = [];
     
-    $('tr').each(function() {
+    // Debug: log how many rows we find
+    const allRows = $('tr');
+    console.log('Total rows found:', allRows.length);
+    
+    $('tr').each(function(index) {
       const cells = $(this).find('td');
+      console.log(`Row ${index}: ${cells.length} cells`);
+      
       if (cells.length >= 6) {
         const dateCell = $(cells[0]).text().trim();
         const currencyCell = $(cells[1]).text().trim();
         const buyingRateCell = $(cells[4]).text().trim();
         const sellingRateCell = $(cells[5]).text().trim();
         
+        console.log(`Row ${index}: Date="${dateCell}", Currency="${currencyCell}", Buying="${buyingRateCell}", Selling="${sellingRateCell}"`);
+        
         if (currencyCell === targetCurrency && dateCell && buyingRateCell && sellingRateCell) {
           const parsedDate = parseDate(dateCell);
           const buyingRate = parseFloat(buyingRateCell.replace(/,/g, ''));
           const sellingRate = parseFloat(sellingRateCell.replace(/,/g, ''));
+          
+          console.log(`Matched currency ${targetCurrency}: parsedDate=${parsedDate}, buyingRate=${buyingRate}, sellingRate=${sellingRate}`);
           
           if (parsedDate && !isNaN(buyingRate) && !isNaN(sellingRate)) {
             rates.push({
@@ -49,6 +60,8 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
         }
       }
     });
+    
+    console.log(`Found ${rates.length} rates for ${targetCurrency}`);
     
     if (rates.length === 0) {
       return null;
@@ -126,9 +139,11 @@ exports.handler = async (event, context) => {
     const { startDate, endDate, currency, exactDate } = JSON.parse(event.body);
     
     console.log(`Fetching exchange rate for ${currency} from ${startDate} to ${endDate}, exact date needed: ${exactDate}`);
+    console.log('Request body:', JSON.parse(event.body));
     
     // Create the exact form data structure from CBSL
     const currencyMapping = getCurrencyMapping(currency);
+    console.log('Currency mapping:', currencyMapping);
     
     const formData = new URLSearchParams();
     formData.append('lookupPage', 'lookup_daily_exchange_rates.php');
@@ -161,9 +176,13 @@ exports.handler = async (event, context) => {
       throw new Error('No data received from CBSL');
     }
     
-    console.log('CBSL Response received, parsing...');
+    console.log('CBSL Response received, length:', response.data.length);
+    console.log('CBSL Response preview (first 500 chars):', response.data.substring(0, 500));
+    console.log('CBSL Response parsing...');
     
     const exchangeRateData = parseCBSLResponse(response.data, currency, exactDate);
+    
+    console.log('Parsed exchange rate data:', exchangeRateData);
     
     if (!exchangeRateData) {
       return {
