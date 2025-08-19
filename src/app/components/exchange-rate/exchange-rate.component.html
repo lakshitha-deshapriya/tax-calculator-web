@@ -1,0 +1,85 @@
+<div class="exchange-rate-section">
+  <h2>Exchange Rate Lookup</h2>
+  <p class="section-description">Look up historical exchange rates for reference.</p>
+  
+  <div class="form-container">
+    <div class="form-row">
+      <div class="input-group">
+        <label for="date">Select Date:</label>
+        <input 
+          type="date" 
+          id="date"
+          [(ngModel)]="selectedDate"
+          class="form-input"
+          [max]="maxDate"
+        >
+      </div>
+      
+      <div class="input-group">
+        <label for="currency">Select Currency:</label>
+        <select 
+          id="currency"
+          [(ngModel)]="selectedCurrency"
+          class="form-select"
+        >
+          <option *ngFor="let currency of supportedCurrencies" [value]="currency.code">
+            {{ currency.code }} - {{ currency.name }}
+          </option>
+        </select>
+      </div>
+    </div>
+    
+    <button 
+      class="search-button"
+      (click)="onSearchExchangeRate()"
+      [disabled]="isLoading"
+    >
+      <span *ngIf="!isLoading">Search Exchange Rate</span>
+      <span *ngIf="isLoading">Searching...</span>
+    </button>
+  </div>
+
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="loading">
+    <div class="spinner"></div>
+    <p>Fetching exchange rate from Central Bank of Sri Lanka...</p>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    <h3>❌ Error</h3>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Exchange rate results -->
+  <div *ngIf="exchangeRateData && !isLoading" class="results">
+    <h3>✅ Exchange Rate Found</h3>
+    <div class="rate-card">
+      <div class="rate-header">
+        <h4>{{ exchangeRateData.currency }} to LKR</h4>
+        <p class="date">{{ formatDisplayDate(exchangeRateData.date) }}</p>
+      </div>
+      
+      <div class="rate-details">
+        <div class="rate-item">
+          <span class="label">Buying Rate:</span>
+          <span class="value">LKR {{ exchangeRateData.buyingRate.toFixed(2) }}</span>
+        </div>
+        
+        <div class="rate-item">
+          <span class="label">Selling Rate:</span>
+          <span class="value">LKR {{ exchangeRateData.sellingRate.toFixed(2) }}</span>
+        </div>
+        
+        <div class="rate-item highlight">
+          <span class="label">Average Rate:</span>
+          <span class="value">LKR {{ exchangeRateData.averageRate.toFixed(2) }}</span>
+        </div>
+      </div>
+      
+      <div class="source">
+        <small>Source: {{ exchangeRateData.source }}</small>
+      </div>
+    </div>
+  </div>
+</div>
