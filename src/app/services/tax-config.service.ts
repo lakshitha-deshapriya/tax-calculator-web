@@ -28,6 +28,16 @@ export class TaxConfigService {
         if (!config.taxBrackets || config.taxBrackets.length === 0) {
           config.taxBrackets = this.getDefaultTaxBrackets();
         }
+        
+        // Convert string dates back to Date objects
+        if (config.salaryEntries) {
+          config.salaryEntries = config.salaryEntries.map((entry: any) => ({
+            ...entry,
+            taxableMonth: new Date(entry.taxableMonth),
+            salaryDate: new Date(entry.salaryDate)
+          }));
+        }
+        
         return config;
       } catch (error) {
         console.error('Error parsing stored tax config:', error);
@@ -173,9 +183,10 @@ export class TaxConfigService {
       .reduce((total, entry) => total + (entry.salaryInLKR || 0), 0);
   }
 
-  formatDateToMonthString(date: Date): string {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  formatDateToMonthString(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
     return `${year}-${month}`;
   }
 

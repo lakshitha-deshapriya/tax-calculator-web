@@ -159,9 +159,10 @@ export class AppComponent implements OnInit {
     }
   }
 
-  formatDateToMonthString(date: Date): string {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  formatDateToMonthString(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
     return `${year}-${month}`;
   }
 
