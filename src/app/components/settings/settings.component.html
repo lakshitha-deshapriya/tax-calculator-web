@@ -1,0 +1,165 @@
+<div class="settings-section">
+  <h2>Default Settings</h2>
+  <p class="section-description">Set your default salary date and currency. These will be used as defaults when adding new salary entries.</p>
+  
+  <div class="form-container">
+    <div class="form-row">
+      <div class="input-group">
+        <label for="defaultSalaryDate">Default Salary Date (Day of Month):</label>
+        <select 
+          id="defaultSalaryDate"
+          [(ngModel)]="taxConfig.defaultSalaryDate"
+          (change)="onDefaultConfigChange()"
+          class="form-select"
+        >
+          <option *ngFor="let day of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]" [value]="day.toString().padStart(2, '0')">
+            {{ day }}{{ day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th' }} of the month
+          </option>
+        </select>
+      </div>
+      
+      <div class="input-group">
+        <label for="defaultCurrency">Default Currency:</label>
+        <select 
+          id="defaultCurrency"
+          [(ngModel)]="taxConfig.defaultCurrency"
+          (change)="onDefaultConfigChange()"
+          class="form-select"
+        >
+          <option *ngFor="let currency of supportedCurrencies" [value]="currency.code">
+            {{ currency.code }} - {{ currency.name }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h3>📊 About Financial Year & Tax Calculation</h3>
+    <ul>
+      <li><strong>Financial Year:</strong> April 1st to March 31st of the next year</li>
+      <li><strong>Exchange Rate:</strong> Uses CBSL buying rate for salary date</li>
+      <li><strong>Taxing Month:</strong> Salary received in a month is taxed in the same month</li>
+      <li><strong>Tax Calculation:</strong> Progressive tax system based on annual salary</li>
+      <li><strong>Data Storage:</strong> All data is saved locally in your browser</li>
+    </ul>
+  </div>
+
+  <!-- Tax Brackets Management -->
+  <div class="tax-brackets-section">
+    <h3>Tax Brackets Configuration</h3>
+    <p class="section-description">Configure income tax brackets for salary tax calculations. Tax is calculated progressively based on annual income.</p>
+    
+    <div class="current-brackets">
+      <h4>Current Tax Brackets</h4>
+      <div class="brackets-table-container">
+        <table class="brackets-table">
+          <thead>
+            <tr>
+              <th>Income Range (LKR)</th>
+              <th>Tax Rate</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bracket of taxConfig.taxBrackets" class="bracket-row">
+              <td class="bracket-range">
+                <strong>{{ bracket.minIncome | number:'1.0-0' }}</strong>
+                <span *ngIf="bracket.maxIncome; else infinitySpan"> - {{ bracket.maxIncome | number:'1.0-0' }}</span>
+                <ng-template #infinitySpan> and above</ng-template>
+              </td>
+              <td class="bracket-rate">
+                <span class="rate-badge">{{ formatPercentage(bracket.taxRate) }}</span>
+              </td>
+              <td class="bracket-description">{{ bracket.description }}</td>
+              <td class="bracket-actions">
+                <button class="delete-button" (click)="onDeleteTaxBracket(bracket.id)" title="Delete bracket">
+                  <span>×</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bracket-actions">
+      <button class="toggle-button" (click)="isEditingBrackets = !isEditingBrackets">
+        {{ isEditingBrackets ? 'Cancel' : 'Add Custom Bracket' }}
+      </button>
+      <button class="reset-button" (click)="onResetTaxBrackets()">
+        Reset to Default
+      </button>
+    </div>
+
+    <!-- Add New Tax Bracket Form -->
+    <div *ngIf="isEditingBrackets" class="add-bracket-form">
+      <h4>Add New Tax Bracket</h4>
+      <div class="form-container">
+        <div class="form-row">
+          <div class="input-group">
+            <label for="bracketMinIncome">Minimum Income (LKR):</label>
+            <input 
+              type="number"
+              id="bracketMinIncome"
+              [(ngModel)]="newTaxBracket.minIncome"
+              class="form-input"
+              placeholder="0"
+              min="0"
+              step="1"
+            >
+          </div>
+          
+          <div class="input-group">
+            <label for="bracketMaxIncome">Maximum Income (LKR) - Leave empty for no limit:</label>
+            <input 
+              type="number"
+              id="bracketMaxIncome"
+              [(ngModel)]="newTaxBracket.maxIncome"
+              class="form-input"
+              placeholder="Leave empty for infinity"
+              min="0"
+              step="1"
+            >
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="input-group">
+            <label for="bracketTaxRate">Tax Rate (%):</label>
+            <input 
+              type="number"
+              id="bracketTaxRate"
+              [(ngModel)]="newTaxBracket.taxRate"
+              class="form-input"
+              placeholder="15"
+              min="0"
+              max="100"
+              step="0.1"
+            >
+          </div>
+          
+          <div class="input-group">
+            <label for="bracketDescription">Description:</label>
+            <input 
+              type="text"
+              id="bracketDescription"
+              [(ngModel)]="newTaxBracket.description"
+              class="form-input"
+              placeholder="e.g., Standard rate for high income"
+            >
+          </div>
+        </div>
+        
+        <button 
+          class="add-button"
+          (click)="onAddTaxBracket()"
+          [disabled]="!newTaxBracket.minIncome && newTaxBracket.minIncome !== 0 || !newTaxBracket.taxRate && newTaxBracket.taxRate !== 0 || !newTaxBracket.description"
+        >
+          Add Tax Bracket
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -5,10 +5,11 @@ import { ExchangeRateProductionService as ExchangeRateService, ExchangeRateData 
 import { TaxConfigService } from './services/tax-config.service';
 import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket } from './models/tax-config.model';
 import { ExchangeRateComponent } from './components/exchange-rate/exchange-rate.component';
+import { SettingsComponent } from './components/settings/settings.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ExchangeRateComponent],
+  imports: [CommonModule, FormsModule, ExchangeRateComponent, SettingsComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -21,10 +22,6 @@ export class AppComponent implements OnInit {
   newSalaryEntry: Partial<SalaryEntry> = {};
   isAddingSalary: boolean = false;
   activeTab: 'settings' | 'salary' | 'calculator' | 'exchange' = 'settings';
-  
-  // Tax bracket management
-  newTaxBracket: Partial<TaxBracket> = {};
-  isEditingBrackets: boolean = false;
   supportedCurrencies: { code: string, name: string }[] = [];
 
   constructor(
@@ -50,7 +47,6 @@ export class AppComponent implements OnInit {
     // Initialize tax calculator data
     this.availableMonths = this.taxConfigService.getAvailableMonths();
     this.initNewSalaryEntry();
-    this.initNewTaxBracket();
   }
 
   get maxDate(): string {
@@ -83,8 +79,7 @@ export class AppComponent implements OnInit {
     console.log('Tax configuration saved');
   }
 
-  onDefaultConfigChange(): void {
-    this.saveTaxConfig();
+  onConfigChanged(): void {
     // Update new salary entry with new defaults
     if (this.newSalaryEntry.currency !== this.taxConfig.defaultCurrency) {
       this.newSalaryEntry.currency = this.taxConfig.defaultCurrency;
@@ -190,58 +185,6 @@ export class AppComponent implements OnInit {
         return entryFY.startYear === financialYear.startYear;
       })
       .sort((a, b) => new Date(a.salaryDate).getTime() - new Date(b.salaryDate).getTime());
-  }
-
-  // Tax Bracket Management Methods
-
-  initNewTaxBracket(): void {
-    this.newTaxBracket = {
-      minIncome: 0,
-      maxIncome: undefined,
-      taxRate: 0,
-      description: ''
-    };
-  }
-
-  onAddTaxBracket(): void {
-    if (!this.newTaxBracket.minIncome && this.newTaxBracket.minIncome !== 0 || 
-        !this.newTaxBracket.taxRate && this.newTaxBracket.taxRate !== 0 || 
-        !this.newTaxBracket.description) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    // Ensure tax brackets array exists
-    if (!this.taxConfig.taxBrackets) {
-      this.taxConfig.taxBrackets = [];
-    }
-
-    const bracket: TaxBracket = {
-      id: this.taxConfigService.generateTaxBracketId(),
-      minIncome: this.newTaxBracket.minIncome!,
-      maxIncome: this.newTaxBracket.maxIncome || null,
-      taxRate: this.newTaxBracket.taxRate! / 100, // Convert percentage to decimal
-      description: this.newTaxBracket.description!
-    };
-
-    this.taxConfig.taxBrackets.push(bracket);
-    this.saveTaxConfig();
-    this.initNewTaxBracket();
-    this.isEditingBrackets = false;
-  }
-
-  onDeleteTaxBracket(bracketId: string): void {
-    if (confirm('Are you sure you want to delete this tax bracket?')) {
-      this.taxConfig.taxBrackets = this.taxConfig.taxBrackets.filter(bracket => bracket.id !== bracketId);
-      this.saveTaxConfig();
-    }
-  }
-
-  onResetTaxBrackets(): void {
-    if (confirm('Are you sure you want to reset to default tax brackets? This will remove all custom brackets.')) {
-      this.taxConfig.taxBrackets = this.taxConfigService.getDefaultTaxBrackets();
-      this.saveTaxConfig();
-    }
   }
 
   // Tax calculation helper methods for templates
