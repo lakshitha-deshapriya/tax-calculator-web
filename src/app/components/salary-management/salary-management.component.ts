@@ -18,6 +18,7 @@ export class SalaryManagementComponent implements OnInit {
   availableFinancialYears: FinancialYear[] = [];
   selectedFinancialYear!: FinancialYear;
   availableMonths: { value: string; label: string }[] = [];
+  selectedTaxableMonth: string = ''; // Add string property for month selection
   newSalaryEntry: Partial<SalaryEntry> = {};
   isAddingSalary: boolean = false;
   supportedCurrencies: { code: string, name: string }[] = [];
@@ -34,7 +35,10 @@ export class SalaryManagementComponent implements OnInit {
 
     // Initialize financial years
     this.availableFinancialYears = this.taxConfigService.getAvailableFinancialYears();
-    this.selectedFinancialYear = this.taxConfigService.getCurrentFinancialYear();
+    // Set selected financial year to the first item (current year) from the available list
+    if (this.availableFinancialYears.length > 0) {
+      this.selectedFinancialYear = this.availableFinancialYears[0];
+    }
 
     // Initialize salary data
     this.updateAvailableMonths();
@@ -46,15 +50,21 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   updateAvailableMonths(): void {
-    this.availableMonths = this.taxConfigService.getAvailableTaxableMonths(
-      this.selectedFinancialYear, 
-      this.taxConfig.salaryEntries
-    );
+    if (this.selectedFinancialYear) {
+      this.availableMonths = this.taxConfigService.getAvailableTaxableMonths(
+        this.selectedFinancialYear, 
+        this.taxConfig.salaryEntries
+      );
+    } else {
+      this.availableMonths = [];
+    }
   }
 
   onFinancialYearChange(): void {
-    this.updateAvailableMonths();
-    this.initNewSalaryEntry();
+    if (this.selectedFinancialYear) {
+      this.updateAvailableMonths();
+      this.initNewSalaryEntry();
+    }
   }
 
   formatDateForInput(date: Date): string {
@@ -65,8 +75,9 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   initNewSalaryEntry(): void {
-    // Set default month to the first available month (next available taxable month)
+    // Set default month to the first available month (oldest unconfigured taxable month)
     const firstAvailableMonth = this.availableMonths[0]?.value || '';
+    this.selectedTaxableMonth = firstAvailableMonth;
     
     this.newSalaryEntry = {
       taxableMonth: firstAvailableMonth ? new Date(firstAvailableMonth + '-01') : new Date(),
@@ -87,13 +98,12 @@ export class SalaryManagementComponent implements OnInit {
       this.newSalaryEntry.currency = this.taxConfig.defaultCurrency;
     }
     // Update salary date to use new default day
-    if (this.newSalaryEntry.taxableMonth) {
-      const monthString = this.formatDateToMonthString(this.newSalaryEntry.taxableMonth);
+    if (this.selectedTaxableMonth) {
       this.newSalaryEntry.salaryDate = new Date(this.taxConfigService.getDefaultSalaryDateForMonth(
-        monthString, 
+        this.selectedTaxableMonth, 
         this.taxConfig.defaultSalaryDate
       ));
-      this.salaryDateRange = this.taxConfigService.getMonthDateRange(monthString);
+      this.salaryDateRange = this.taxConfigService.getMonthDateRange(this.selectedTaxableMonth);
     }
     // Update available months in case salary entries changed
     this.updateAvailableMonths();
@@ -101,15 +111,15 @@ export class SalaryManagementComponent implements OnInit {
 
   onTaxableMonthChange(): void {
     // Update salary date when taxable month changes
-    if (this.newSalaryEntry.taxableMonth) {
-      const monthString = this.formatDateToMonthString(this.newSalaryEntry.taxableMonth);
+    if (this.selectedTaxableMonth) {
+      this.newSalaryEntry.taxableMonth = new Date(this.selectedTaxableMonth + '-01');
       this.newSalaryEntry.salaryDate = new Date(this.taxConfigService.getDefaultSalaryDateForMonth(
-        monthString, 
+        this.selectedTaxableMonth, 
         this.taxConfig.defaultSalaryDate
       ));
       
       // Update date range for the selected month
-      this.salaryDateRange = this.taxConfigService.getMonthDateRange(monthString);
+      this.salaryDateRange = this.taxConfigService.getMonthDateRange(this.selectedTaxableMonth);
     }
   }
 
@@ -124,6 +134,14 @@ export class SalaryManagementComponent implements OnInit {
     return [...this.taxConfig.salaryEntries].sort((a, b) => {
       return b.taxableMonth.getTime() - a.taxableMonth.getTime(); // Most recent first
     });
+  }
+
+  trackByFinancialYear(index: number, item: FinancialYear): string {
+    return item.label;
+  }
+
+  trackByMonth(index: number, item: { value: string; label: string }): string {
+    return item.value;
   }
 
   onAddSalaryEntry(): void {

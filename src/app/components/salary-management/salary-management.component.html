@@ -13,7 +13,7 @@
           (change)="onFinancialYearChange()"
           class="form-select"
         >
-          <option *ngFor="let fy of availableFinancialYears" [ngValue]="fy">
+          <option *ngFor="let fy of availableFinancialYears; trackBy: trackByFinancialYear" [ngValue]="fy">
             {{ fy.label }}
           </option>
         </select>
@@ -24,7 +24,7 @@
   <!-- Add New Salary Entry -->
   <div class="add-salary-form">
     <h3>Add New Salary Entry</h3>
-    <div *ngIf="availableMonths.length === 0" class="no-months-available">
+    <div *ngIf="availableMonths.length === 0 && selectedFinancialYear" class="no-months-available">
       <p>All taxable months for {{ selectedFinancialYear.label }} have been entered. Please select a different financial year or delete existing entries to add more.</p>
     </div>
     <div *ngIf="availableMonths.length > 0" class="form-container">
@@ -33,11 +33,11 @@
           <label for="taxableMonth">Taxable Month:</label>
           <select 
             id="taxableMonth"
-            [(ngModel)]="newSalaryEntry.taxableMonth"
+            [(ngModel)]="selectedTaxableMonth"
             (change)="onTaxableMonthChange()"
             class="form-select"
           >
-            <option *ngFor="let month of availableMonths" [value]="month.value">
+            <option *ngFor="let month of availableMonths; trackBy: trackByMonth" [value]="month.value">
               {{ month.label }}
             </option>
           </select>
@@ -86,7 +86,7 @@
       <button 
         class="add-button"
         (click)="onAddSalaryEntry()"
-        [disabled]="isAddingSalary || !newSalaryEntry.taxableMonth || !newSalaryEntry.salaryDate || !newSalaryEntry.salaryAmount"
+        [disabled]="isAddingSalary || !selectedTaxableMonth || !newSalaryEntry.salaryDate || !newSalaryEntry.salaryAmount"
       >
         <span *ngIf="!isAddingSalary">Add Salary Entry</span>
         <span *ngIf="isAddingSalary">Getting Exchange Rate...</span>

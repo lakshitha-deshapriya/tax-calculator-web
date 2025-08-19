@@ -204,7 +204,7 @@ export class TaxConfigService {
       }
     }
     
-    return months.sort((a, b) => b.value.localeCompare(a.value)); // Most recent first
+    return months.sort((a, b) => a.value.localeCompare(b.value)); // Oldest first
   }
 
   /**
