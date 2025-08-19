@@ -116,19 +116,19 @@ export class ExchangeRateProductionService {
   }
 
   /**
-   * Returns a list of supported currencies
+   * Returns a list of supported currencies based on CBSL official support
    */
   getSupportedCurrencies(): { code: string, name: string }[] {
     return [
-      { code: 'USD', name: 'US Dollar' },
+      { code: 'USD', name: 'United States Dollar' },
       { code: 'EUR', name: 'Euro' },
       { code: 'GBP', name: 'British Pound' },
       { code: 'AUD', name: 'Australian Dollar' },
       { code: 'CAD', name: 'Canadian Dollar' },
-      { code: 'SGD', name: 'Singapore Dollar' },
-      { code: 'JPY', name: 'Japanese Yen' },
-      { code: 'CNY', name: 'Chinese Yuan' },
-      { code: 'INR', name: 'Indian Rupee' }
+      { code: 'CHF', name: 'Swiss Franc' },
+      { code: 'CNY', name: 'Renminbi' },
+      { code: 'JPY', name: 'Yen' },
+      { code: 'SGD', name: 'Singapore Dollar' }
     ];
   }
 }

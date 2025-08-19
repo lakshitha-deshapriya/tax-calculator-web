@@ -234,16 +234,15 @@ export class ExchangeRateService {
    */
   getSupportedCurrencies(): { code: string, name: string }[] {
     return [
-      { code: 'USD', name: 'US Dollar' },
-      { code: 'SGD', name: 'Singapore Dollar' },
+      { code: 'USD', name: 'United States Dollar' },
       { code: 'EUR', name: 'Euro' },
-      { code: 'GBP', name: 'Pound Sterling' },
-      { code: 'JPY', name: 'Japanese Yen' },
+      { code: 'GBP', name: 'British Pound' },
       { code: 'AUD', name: 'Australian Dollar' },
       { code: 'CAD', name: 'Canadian Dollar' },
       { code: 'CHF', name: 'Swiss Franc' },
-      { code: 'CNY', name: 'Chinese Yuan' },
-      { code: 'INR', name: 'Indian Rupee' }
+      { code: 'CNY', name: 'Renminbi' },
+      { code: 'JPY', name: 'Yen' },
+      { code: 'SGD', name: 'Singapore Dollar' }
     ];
   }
 

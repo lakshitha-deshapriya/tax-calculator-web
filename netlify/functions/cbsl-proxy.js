@@ -1,6 +1,19 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+// Supported currencies based on CBSL official support
+const SUPPORTED_CURRENCIES = [
+  'USD', // United States Dollar
+  'EUR', // Euro
+  'GBP', // British Pound
+  'AUD', // Australian Dollar
+  'CAD', // Canadian Dollar
+  'CHF', // Swiss Franc
+  'CNY', // Renminbi
+  'JPY', // Yen
+  'SGD'  // Singapore Dollar
+];
+
 // Currency mapping for CBSL API
 const getCurrencyMapping = (currency) => {
   const mapping = {
@@ -9,10 +22,10 @@ const getCurrencyMapping = (currency) => {
     'GBP': 'GBP',
     'AUD': 'AUD',
     'CAD': 'CAD',
+    'CHF': 'CHF',
     'SGD': 'SGD',
     'JPY': 'JPY',
-    'CNY': 'CNY',
-    'INR': 'INR'
+    'CNY': 'CNY'
   };
   return mapping[currency] || currency;
 };
@@ -20,17 +33,11 @@ const getCurrencyMapping = (currency) => {
 // Parse the HTML response from CBSL
 const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
   try {
-    console.log('Parsing HTML for currency:', targetCurrency, 'exactDate:', exactDate);
     const $ = cheerio.load(htmlString);
     const rates = [];
     
-    // Debug: log how many rows we find
-    const allRows = $('tr');
-    console.log('Total rows found:', allRows.length);
-    
     $('tr').each(function(index) {
       const cells = $(this).find('td');
-      console.log(`Row ${index}: ${cells.length} cells`);
       
       if (cells.length >= 3) {
         const dateCell = $(cells[0]).text().trim();
@@ -39,17 +46,12 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
         const buyingRateCell = $(cells[1]).text().trim();
         const sellingRateCell = $(cells[2]).text().trim();
         
-        console.log(`Row ${index}: Date="${dateCell}", BuyRate="${buyingRateCell}", SellRate="${sellingRateCell}"`);
-        
         if (dateCell && buyingRateCell && sellingRateCell) {
           const parsedDate = parseDate(dateCell);
           const buyingRate = parseFloat(buyingRateCell.replace(/,/g, ''));
           const sellingRate = parseFloat(sellingRateCell.replace(/,/g, ''));
           
-          console.log(`Processing row ${index}: parsedDate=${parsedDate}, buyingRate=${buyingRate}, sellingRate=${sellingRate}`);
-          
           if (parsedDate && !isNaN(buyingRate) && !isNaN(sellingRate)) {
-            console.log(`Valid data found for ${targetCurrency} on ${parsedDate}`);
             rates.push({
               date: parsedDate,
               currency: targetCurrency, // Use the requested currency since it's not in the table
@@ -67,14 +69,10 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
         const buyingRateCell = $(cells[4]).text().trim();
         const sellingRateCell = $(cells[5]).text().trim();
         
-        console.log(`Row ${index} (old format): Date="${dateCell}", Currency="${currencyCell}", Buying="${buyingRateCell}", Selling="${sellingRateCell}"`);
-        
         if (currencyCell === targetCurrency && dateCell && buyingRateCell && sellingRateCell) {
           const parsedDate = parseDate(dateCell);
           const buyingRate = parseFloat(buyingRateCell.replace(/,/g, ''));
           const sellingRate = parseFloat(sellingRateCell.replace(/,/g, ''));
-          
-          console.log(`Matched currency ${targetCurrency}: parsedDate=${parsedDate}, buyingRate=${buyingRate}, sellingRate=${sellingRate}`);
           
           if (parsedDate && !isNaN(buyingRate) && !isNaN(sellingRate)) {
             rates.push({
@@ -89,8 +87,6 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
         }
       }
     });
-    
-    console.log(`Found ${rates.length} rates for ${targetCurrency}`);
     
     if (rates.length === 0) {
       return null;
@@ -122,11 +118,8 @@ const parseCBSLResponse = (htmlString, targetCurrency, exactDate) => {
 // Parse date from CBSL format
 const parseDate = (dateStr) => {
   if (!dateStr) {
-    console.log('parseDate: empty dateStr');
     return null;
   }
-  
-  console.log('parseDate: attempting to parse:', dateStr);
   
   try {
     // Clean the date string
@@ -135,35 +128,26 @@ const parseDate = (dateStr) => {
     // Handle different date formats from CBSL
     if (cleanDateStr.includes('/')) {
       const parts = cleanDateStr.split('/');
-      if (parts.length === 3) {
-        // Assume DD/MM/YYYY format
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // JavaScript months are 0-based
+      if (parts.length >= 3) {
+        // Assume MM/DD/YYYY format
+        const month = parseInt(parts[0]) - 1; // Month is 0-indexed
+        const day = parseInt(parts[1]);
         const year = parseInt(parts[2]);
-        const parsedDate = new Date(year, month, day);
-        console.log('parseDate: parsed DD/MM/YYYY format:', parsedDate);
-        return parsedDate;
+        return new Date(year, month, day);
       }
-    } else if (cleanDateStr.includes('-')) {
-      // Handle YYYY-MM-DD format
-      const parsedDate = new Date(cleanDateStr);
-      console.log('parseDate: parsed YYYY-MM-DD format:', parsedDate);
-      return parsedDate;
-    } else if (cleanDateStr.match(/^\d{1,2}\s+\w+\s+\d{4}$/)) {
-      // Handle "DD Month YYYY" format (e.g., "11 August 2025")
-      const parsedDate = new Date(cleanDateStr);
-      console.log('parseDate: parsed DD Month YYYY format:', parsedDate);
-      return parsedDate;
     }
     
-    // Try direct parsing as fallback
-    const parsedDate = new Date(cleanDateStr);
-    console.log('parseDate: fallback parsing result:', parsedDate);
-    return isNaN(parsedDate.getTime()) ? null : parsedDate;
+    // Try parsing as a standard date string
+    const date = new Date(cleanDateStr);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    
   } catch (error) {
-    console.log('parseDate: error parsing', dateStr, ':', error);
     return null;
   }
+  
+  return null;
 };
 
 exports.handler = async (event, context) => {
@@ -193,15 +177,26 @@ exports.handler = async (event, context) => {
   try {
     const { startDate, endDate, currency, exactDate } = JSON.parse(event.body);
     
-    console.log(`Fetching exchange rate for ${currency} from ${startDate} to ${endDate}, exact date needed: ${exactDate}`);
-    console.log('Request body:', JSON.parse(event.body));
+    // Validate currency support
+    if (!SUPPORTED_CURRENCIES.includes(currency)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          success: false,
+          error: `Currency ${currency} is not supported. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`
+        })
+      };
+    }
     
     // Check if the dates are in the future (CBSL won't have data for future dates)
     const today = new Date();
     const requestDate = new Date(exactDate);
     
     if (requestDate > today) {
-      console.log('Requested date is in the future, CBSL will not have this data');
       return {
         statusCode: 200,
         headers: {
@@ -217,7 +212,6 @@ exports.handler = async (event, context) => {
     
     // Create the exact form data structure from CBSL
     const currencyMapping = getCurrencyMapping(currency);
-    console.log('Currency mapping:', currencyMapping);
     
     const formData = new URLSearchParams();
     formData.append('lookupPage', 'lookup_daily_exchange_rates.php');
@@ -227,8 +221,6 @@ exports.handler = async (event, context) => {
     formData.append('txtEnd', endDate);
     formData.append('chk_cur[]', currencyMapping);
     formData.append('submit_button', 'Submit');
-    
-    console.log('Form data being sent to CBSL:', formData.toString());
     
     // Make request to CBSL
     const response = await axios.post(
@@ -252,38 +244,7 @@ exports.handler = async (event, context) => {
       throw new Error('No data received from CBSL');
     }
     
-    console.log('CBSL Response received, length:', response.data.length);
-    console.log('CBSL Response preview (first 1000 chars):', response.data.substring(0, 1000));
-    
-    // Let's also check if there's any table content
-    const $ = cheerio.load(response.data);
-    const tables = $('table');
-    console.log('Number of tables found:', tables.length);
-    
-    tables.each(function(i) {
-      console.log('\n=== TABLE ' + i + ' ===');
-      console.log('Table ' + i + ' HTML:', $(this).html());
-      console.log('Table ' + i + ' text content:', $(this).text().trim());
-      
-      const rows = $(this).find('tr');
-      console.log('Table ' + i + ' has ' + rows.length + ' rows');
-      
-      rows.each(function(rowIndex) {
-        const cells = $(this).find('td, th');
-        const cellTexts = [];
-        cells.each(function() {
-          cellTexts.push($(this).text().trim());
-        });
-        console.log('Table ' + i + ', Row ' + rowIndex + ': [' + cellTexts.join('] [') + ']');
-      });
-      console.log('=== END TABLE ' + i + ' ===\n');
-    });
-    
-    console.log('CBSL Response parsing...');
-    
     const exchangeRateData = parseCBSLResponse(response.data, currency, exactDate);
-    
-    console.log('Parsed exchange rate data:', exchangeRateData);
     
     if (!exchangeRateData) {
       return {
