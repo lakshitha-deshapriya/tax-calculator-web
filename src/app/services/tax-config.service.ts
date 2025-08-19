@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { TaxConfig, SalaryEntry, FinancialYear } from '../models/tax-config.model';
+import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket } from '../models/tax-config.model';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +23,12 @@ export class TaxConfigService {
     const stored = localStorage.getItem(this.STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const config = JSON.parse(stored);
+        // Ensure tax brackets are always present
+        if (!config.taxBrackets || config.taxBrackets.length === 0) {
+          config.taxBrackets = this.getDefaultTaxBrackets();
+        }
+        return config;
       } catch (error) {
         console.error('Error parsing stored tax config:', error);
         return null;
@@ -39,8 +44,38 @@ export class TaxConfigService {
     return {
       defaultSalaryDate: '01',
       defaultCurrency: 'USD',
-      salaryEntries: []
+      salaryEntries: [],
+      taxBrackets: this.getDefaultTaxBrackets()
     };
+  }
+
+  /**
+   * Get default tax brackets for Sri Lankan income tax
+   */
+  getDefaultTaxBrackets(): TaxBracket[] {
+    return [
+      {
+        id: '1',
+        minIncome: 0,
+        maxIncome: 1800000,
+        taxRate: 0.0,
+        description: 'No tax up to LKR 1,800,000'
+      },
+      {
+        id: '2',
+        minIncome: 1800000,
+        maxIncome: 2800000,
+        taxRate: 0.06,
+        description: '6% tax on income from LKR 1,800,001 to LKR 2,800,000'
+      },
+      {
+        id: '3',
+        minIncome: 2800000,
+        maxIncome: null,
+        taxRate: 0.15,
+        description: '15% tax on income above LKR 2,800,000'
+      }
+    ];
   }
 
   /**
@@ -131,9 +166,135 @@ export class TaxConfigService {
   calculateFinancialYearSalary(salaryEntries: SalaryEntry[], financialYear: FinancialYear): number {
     return salaryEntries
       .filter(entry => {
-        const entryFinancialYear = this.getFinancialYear(entry.taxableMonth);
+        const monthString = this.formatDateToMonthString(entry.taxableMonth);
+        const entryFinancialYear = this.getFinancialYear(monthString);
         return entryFinancialYear.startYear === financialYear.startYear;
       })
       .reduce((total, entry) => total + (entry.salaryInLKR || 0), 0);
+  }
+
+  formatDateToMonthString(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  /**
+   * Calculate monthly tax for a given monthly salary using progressive tax brackets
+   */
+  calculateMonthlyTax(monthlySalaryLKR: number, taxBrackets: TaxBracket[]): number {
+    // Convert monthly to annual for tax calculation
+    const annualSalaryLKR = monthlySalaryLKR * 12;
+    const annualTax = this.calculateAnnualTax(annualSalaryLKR, taxBrackets);
+    // Return monthly tax
+    return annualTax / 12;
+  }
+
+  /**
+   * Calculate annual tax using progressive tax brackets
+   */
+  calculateAnnualTax(annualSalaryLKR: number, taxBrackets: TaxBracket[]): number {
+    let totalTax = 0;
+    let remainingIncome = annualSalaryLKR;
+
+    // Sort brackets by minIncome to ensure correct order
+    const sortedBrackets = [...taxBrackets].sort((a, b) => a.minIncome - b.minIncome);
+
+    for (const bracket of sortedBrackets) {
+      if (remainingIncome <= 0) break;
+
+      const bracketMin = bracket.minIncome;
+      const bracketMax = bracket.maxIncome || Infinity;
+      
+      // Skip brackets that don't apply to this income level
+      if (annualSalaryLKR <= bracketMin) continue;
+
+      // Calculate taxable amount in this bracket
+      const taxableInThisBracket = Math.min(
+        remainingIncome,
+        Math.min(bracketMax - bracketMin, annualSalaryLKR - bracketMin)
+      );
+
+      if (taxableInThisBracket > 0) {
+        totalTax += taxableInThisBracket * bracket.taxRate;
+        remainingIncome -= taxableInThisBracket;
+      }
+    }
+
+    return totalTax;
+  }
+
+  /**
+   * Calculate detailed tax breakdown by bracket for display
+   */
+  calculateDetailedTaxBreakdown(annualSalaryLKR: number, taxBrackets: TaxBracket[]): {
+    rangeMin: number;
+    rangeMax: number | null;
+    rate: number;
+    tax: number;
+  }[] {
+    const sortedBrackets = [...taxBrackets].sort((a, b) => a.minIncome - b.minIncome);
+    const breakdown = [];
+    let remainingSalary = annualSalaryLKR;
+
+    for (const bracket of sortedBrackets) {
+      if (remainingSalary <= 0) break;
+
+      const bracketMin = bracket.minIncome;
+      const bracketMax = bracket.maxIncome;
+      const taxableInThisBracket = Math.min(
+        remainingSalary,
+        bracketMax ? bracketMax - bracketMin : remainingSalary
+      );
+
+      if (taxableInThisBracket > 0) {
+        const tax = (taxableInThisBracket * bracket.taxRate) / 100;
+        breakdown.push({
+          rangeMin: bracketMin,
+          rangeMax: bracketMax,
+          rate: bracket.taxRate,
+          tax: tax
+        });
+      }
+
+      remainingSalary -= taxableInThisBracket;
+    }
+
+    return breakdown;
+  }
+
+  /**
+   * Calculate tax breakdown for a salary entry
+   */
+  calculateTaxBreakdown(salaryEntry: SalaryEntry, taxBrackets: TaxBracket[]): {
+    monthlySalaryLKR: number;
+    annualSalaryLKR: number;
+    monthlyTax: number;
+    annualTax: number;
+    netMonthlySalary: number;
+    netAnnualSalary: number;
+    effectiveTaxRate: number;
+  } {
+    const monthlySalaryLKR = salaryEntry.salaryInLKR || 0;
+    const annualSalaryLKR = monthlySalaryLKR * 12;
+    const annualTax = this.calculateAnnualTax(annualSalaryLKR, taxBrackets);
+    const monthlyTax = annualTax / 12;
+
+    return {
+      monthlySalaryLKR,
+      annualSalaryLKR,
+      monthlyTax,
+      annualTax,
+      netMonthlySalary: monthlySalaryLKR - monthlyTax,
+      netAnnualSalary: annualSalaryLKR - annualTax,
+      effectiveTaxRate: annualSalaryLKR > 0 ? (annualTax / annualSalaryLKR) * 100 : 0
+    };
+  }
+
+  /**
+   * Generate unique ID for tax brackets
+   */
+  generateTaxBracketId(): string {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 5);
   }
 }

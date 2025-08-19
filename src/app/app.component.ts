@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ExchangeRateProductionService as ExchangeRateService, ExchangeRateData } from './services/exchange-rate-production.service';
 import { TaxConfigService } from './services/tax-config.service';
-import { TaxConfig, SalaryEntry, FinancialYear } from './models/tax-config.model';
+import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket } from './models/tax-config.model';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +28,10 @@ export class AppComponent implements OnInit {
   newSalaryEntry: Partial<SalaryEntry> = {};
   isAddingSalary: boolean = false;
   activeTab: 'settings' | 'salary' | 'calculator' = 'settings';
+  
+  // Tax bracket management
+  newTaxBracket: Partial<TaxBracket> = {};
+  isEditingBrackets: boolean = false;
 
   constructor(
     private exchangeRateService: ExchangeRateService,
@@ -35,6 +39,11 @@ export class AppComponent implements OnInit {
   ) {
     // Load or create default tax config
     this.taxConfig = this.taxConfigService.loadTaxConfig() || this.taxConfigService.getDefaultTaxConfig();
+    
+    // Ensure tax brackets are always initialized
+    if (!this.taxConfig.taxBrackets || this.taxConfig.taxBrackets.length === 0) {
+      this.taxConfig.taxBrackets = this.taxConfigService.getDefaultTaxBrackets();
+    }
   }
 
   ngOnInit() {
@@ -50,6 +59,7 @@ export class AppComponent implements OnInit {
     // Initialize tax calculator data
     this.availableMonths = this.taxConfigService.getAvailableMonths();
     this.initNewSalaryEntry();
+    this.initNewTaxBracket();
 
     // Set default currency for exchange rate lookup
     if (this.taxConfig.defaultCurrency) {
@@ -110,8 +120,8 @@ export class AppComponent implements OnInit {
     const currentMonth = this.availableMonths[0]?.value || '';
     
     this.newSalaryEntry = {
-      taxableMonth: currentMonth,
-      salaryDate: currentMonth ? this.taxConfigService.getDefaultSalaryDateForMonth(currentMonth, this.taxConfig.defaultSalaryDate) : '',
+      taxableMonth: currentMonth ? new Date(currentMonth + '-01') : new Date(),
+      salaryDate: currentMonth ? new Date(this.taxConfigService.getDefaultSalaryDateForMonth(currentMonth, this.taxConfig.defaultSalaryDate)) : new Date(),
       currency: this.taxConfig.defaultCurrency,
       salaryAmount: 0
     };
@@ -130,21 +140,29 @@ export class AppComponent implements OnInit {
     }
     // Update salary date to use new default day
     if (this.newSalaryEntry.taxableMonth) {
-      this.newSalaryEntry.salaryDate = this.taxConfigService.getDefaultSalaryDateForMonth(
-        this.newSalaryEntry.taxableMonth, 
+      const monthString = this.formatDateToMonthString(this.newSalaryEntry.taxableMonth);
+      this.newSalaryEntry.salaryDate = new Date(this.taxConfigService.getDefaultSalaryDateForMonth(
+        monthString, 
         this.taxConfig.defaultSalaryDate
-      );
+      ));
     }
   }
 
   onTaxableMonthChange(): void {
     // Update salary date when taxable month changes
     if (this.newSalaryEntry.taxableMonth) {
-      this.newSalaryEntry.salaryDate = this.taxConfigService.getDefaultSalaryDateForMonth(
-        this.newSalaryEntry.taxableMonth, 
+      const monthString = this.formatDateToMonthString(this.newSalaryEntry.taxableMonth);
+      this.newSalaryEntry.salaryDate = new Date(this.taxConfigService.getDefaultSalaryDateForMonth(
+        monthString, 
         this.taxConfig.defaultSalaryDate
-      );
+      ));
     }
+  }
+
+  formatDateToMonthString(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
   }
 
   onAddSalaryEntry(): void {
@@ -160,6 +178,9 @@ export class AppComponent implements OnInit {
     // Get exchange rate for the salary date
     this.exchangeRateService.getExchangeRate(salaryDate, this.newSalaryEntry.currency!).subscribe({
       next: (exchangeData: ExchangeRateData) => {
+        const monthString = this.formatDateToMonthString(this.newSalaryEntry.taxableMonth!);
+        const financialYear = this.taxConfigService.getFinancialYear(monthString);
+        
         const salaryEntry: SalaryEntry = {
           id: this.taxConfigService.generateSalaryEntryId(),
           taxableMonth: this.newSalaryEntry.taxableMonth!,
@@ -167,7 +188,8 @@ export class AppComponent implements OnInit {
           salaryAmount: this.newSalaryEntry.salaryAmount!,
           currency: this.newSalaryEntry.currency!,
           exchangeRate: exchangeData.buyingRate,
-          salaryInLKR: this.newSalaryEntry.salaryAmount! * exchangeData.buyingRate
+          salaryInLKR: this.newSalaryEntry.salaryAmount! * exchangeData.buyingRate,
+          financialYear: financialYear.label
         };
 
         this.taxConfig.salaryEntries.push(salaryEntry);
@@ -178,8 +200,8 @@ export class AppComponent implements OnInit {
         console.log('Salary entry added:', salaryEntry);
       },
       error: (error: any) => {
-        console.error('Error getting exchange rate for salary:', error);
-        alert('Failed to get exchange rate for the salary date. Please try again.');
+        console.error('Error adding salary entry:', error);
+        alert('Failed to get exchange rate. Please try again.');
         this.isAddingSalary = false;
       }
     });
@@ -196,7 +218,8 @@ export class AppComponent implements OnInit {
     const financialYears = new Map<string, FinancialYear>();
     
     this.taxConfig.salaryEntries.forEach(entry => {
-      const fy = this.taxConfigService.getFinancialYear(entry.taxableMonth);
+      const monthString = this.formatDateToMonthString(entry.taxableMonth);
+      const fy = this.taxConfigService.getFinancialYear(monthString);
       financialYears.set(fy.label, fy);
     });
 
@@ -210,9 +233,105 @@ export class AppComponent implements OnInit {
   getSalaryEntriesForFinancialYear(financialYear: FinancialYear): SalaryEntry[] {
     return this.taxConfig.salaryEntries
       .filter(entry => {
-        const entryFY = this.taxConfigService.getFinancialYear(entry.taxableMonth);
+        const monthString = this.formatDateToMonthString(entry.taxableMonth);
+        const entryFY = this.taxConfigService.getFinancialYear(monthString);
         return entryFY.startYear === financialYear.startYear;
       })
       .sort((a, b) => new Date(a.salaryDate).getTime() - new Date(b.salaryDate).getTime());
+  }
+
+  // Tax Bracket Management Methods
+
+  initNewTaxBracket(): void {
+    this.newTaxBracket = {
+      minIncome: 0,
+      maxIncome: undefined,
+      taxRate: 0,
+      description: ''
+    };
+  }
+
+  onAddTaxBracket(): void {
+    if (!this.newTaxBracket.minIncome && this.newTaxBracket.minIncome !== 0 || 
+        !this.newTaxBracket.taxRate && this.newTaxBracket.taxRate !== 0 || 
+        !this.newTaxBracket.description) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Ensure tax brackets array exists
+    if (!this.taxConfig.taxBrackets) {
+      this.taxConfig.taxBrackets = [];
+    }
+
+    const bracket: TaxBracket = {
+      id: this.taxConfigService.generateTaxBracketId(),
+      minIncome: this.newTaxBracket.minIncome!,
+      maxIncome: this.newTaxBracket.maxIncome || null,
+      taxRate: this.newTaxBracket.taxRate! / 100, // Convert percentage to decimal
+      description: this.newTaxBracket.description!
+    };
+
+    this.taxConfig.taxBrackets.push(bracket);
+    this.saveTaxConfig();
+    this.initNewTaxBracket();
+    this.isEditingBrackets = false;
+  }
+
+  onDeleteTaxBracket(bracketId: string): void {
+    if (confirm('Are you sure you want to delete this tax bracket?')) {
+      this.taxConfig.taxBrackets = this.taxConfig.taxBrackets.filter(bracket => bracket.id !== bracketId);
+      this.saveTaxConfig();
+    }
+  }
+
+  onResetTaxBrackets(): void {
+    if (confirm('Are you sure you want to reset to default tax brackets? This will remove all custom brackets.')) {
+      this.taxConfig.taxBrackets = this.taxConfigService.getDefaultTaxBrackets();
+      this.saveTaxConfig();
+    }
+  }
+
+  // Tax calculation helper methods for templates
+  calculateAnnualTax(annualSalary: number): number {
+    return this.taxConfigService.calculateAnnualTax(annualSalary, this.taxConfig.taxBrackets);
+  }
+
+  calculateMonthlyTax(annualSalary: number): number {
+    return this.taxConfigService.calculateMonthlyTax(annualSalary, this.taxConfig.taxBrackets);
+  }
+
+  calculateTaxBreakdown(salaryEntry: SalaryEntry): any[] {
+    if (!salaryEntry.salaryInLKR) return [];
+    const annualSalary = salaryEntry.salaryInLKR * 12;
+    return this.taxConfigService.calculateDetailedTaxBreakdown(annualSalary, this.taxConfig.taxBrackets);
+  }
+
+  getAnnualSalaryFromEntry(entry: SalaryEntry): number {
+    return (entry.salaryInLKR || 0) * 12;
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  }
+
+  formatPercentage(rate: number): string {
+    return `${(rate * 100).toFixed(1)}%`;
+  }
+
+  getMonthName(monthNumber: number): string {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[monthNumber - 1] || '';
+  }
+
+  trackBySalaryEntry(index: number, entry: SalaryEntry): string {
+    return entry.id;
   }
 }

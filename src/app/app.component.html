@@ -75,8 +75,127 @@
             <li><strong>Financial Year:</strong> April 1st to March 31st of the next year</li>
             <li><strong>Exchange Rate:</strong> Uses CBSL buying rate for salary date</li>
             <li><strong>Taxing Month:</strong> Salary received in a month is taxed in the same month</li>
+            <li><strong>Tax Calculation:</strong> Progressive tax system based on annual salary</li>
             <li><strong>Data Storage:</strong> All data is saved locally in your browser</li>
           </ul>
+        </div>
+
+        <!-- Tax Brackets Management -->
+        <div class="tax-brackets-section">
+          <h3>Tax Brackets Configuration</h3>
+          <p class="section-description">Configure income tax brackets for salary tax calculations. Tax is calculated progressively based on annual income.</p>
+          
+          <div class="current-brackets">
+            <h4>Current Tax Brackets</h4>
+            <div class="brackets-table-container">
+              <table class="brackets-table">
+                <thead>
+                  <tr>
+                    <th>Income Range (LKR)</th>
+                    <th>Tax Rate</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let bracket of taxConfig.taxBrackets" class="bracket-row">
+                    <td class="bracket-range">
+                      <strong>{{ bracket.minIncome | number:'1.0-0' }}</strong>
+                      <span *ngIf="bracket.maxIncome; else infinitySpan"> - {{ bracket.maxIncome | number:'1.0-0' }}</span>
+                      <ng-template #infinitySpan> and above</ng-template>
+                    </td>
+                    <td class="bracket-rate">
+                      <span class="rate-badge">{{ formatPercentage(bracket.taxRate) }}</span>
+                    </td>
+                    <td class="bracket-description">{{ bracket.description }}</td>
+                    <td class="bracket-actions">
+                      <button class="delete-button" (click)="onDeleteTaxBracket(bracket.id)" title="Delete bracket">
+                        <span>×</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bracket-actions">
+            <button class="toggle-button" (click)="isEditingBrackets = !isEditingBrackets">
+              {{ isEditingBrackets ? 'Cancel' : 'Add Custom Bracket' }}
+            </button>
+            <button class="reset-button" (click)="onResetTaxBrackets()">
+              Reset to Default
+            </button>
+          </div>
+
+          <!-- Add New Tax Bracket Form -->
+          <div *ngIf="isEditingBrackets" class="add-bracket-form">
+            <h4>Add New Tax Bracket</h4>
+            <div class="form-container">
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="bracketMinIncome">Minimum Income (LKR):</label>
+                  <input 
+                    type="number"
+                    id="bracketMinIncome"
+                    [(ngModel)]="newTaxBracket.minIncome"
+                    class="form-input"
+                    placeholder="0"
+                    min="0"
+                    step="1"
+                  >
+                </div>
+                
+                <div class="input-group">
+                  <label for="bracketMaxIncome">Maximum Income (LKR) - Leave empty for no limit:</label>
+                  <input 
+                    type="number"
+                    id="bracketMaxIncome"
+                    [(ngModel)]="newTaxBracket.maxIncome"
+                    class="form-input"
+                    placeholder="Leave empty for infinity"
+                    min="0"
+                    step="1"
+                  >
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="bracketTaxRate">Tax Rate (%):</label>
+                  <input 
+                    type="number"
+                    id="bracketTaxRate"
+                    [(ngModel)]="newTaxBracket.taxRate"
+                    class="form-input"
+                    placeholder="15"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  >
+                </div>
+                
+                <div class="input-group">
+                  <label for="bracketDescription">Description:</label>
+                  <input 
+                    type="text"
+                    id="bracketDescription"
+                    [(ngModel)]="newTaxBracket.description"
+                    class="form-input"
+                    placeholder="e.g., Standard rate for high income"
+                  >
+                </div>
+              </div>
+              
+              <button 
+                class="add-button"
+                (click)="onAddTaxBracket()"
+                [disabled]="!newTaxBracket.minIncome && newTaxBracket.minIncome !== 0 || !newTaxBracket.taxRate && newTaxBracket.taxRate !== 0 || !newTaxBracket.description"
+              >
+                Add Tax Bracket
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -210,18 +329,64 @@
                 <span class="value">LKR {{ getTotalSalaryForFinancialYear(fy) | number:'1.2-2' }}</span>
               </div>
               <div class="summary-item">
-                <span class="label">Tax Calculation:</span>
-                <span class="value coming-soon">Tax brackets will be implemented next</span>
+                <span class="label">Estimated Annual Tax:</span>
+                <span class="value tax-amount">LKR {{ calculateAnnualTax(getTotalSalaryForFinancialYear(fy)) | number:'1.2-2' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Net Annual Income:</span>
+                <span class="value">LKR {{ getTotalSalaryForFinancialYear(fy) - calculateAnnualTax(getTotalSalaryForFinancialYear(fy)) | number:'1.2-2' }}</span>
               </div>
             </div>
             
             <div class="fy-details">
-              <h4>Salary Breakdown</h4>
+              <h4>Monthly Salary & Tax Breakdown</h4>
               <div class="salary-breakdown">
-                <div *ngFor="let entry of getSalaryEntriesForFinancialYear(fy)" class="breakdown-item">
-                  <span class="month">{{ entry.taxableMonth | date:'MMM yyyy' }}</span>
-                  <span class="amount">{{ entry.currency }} {{ entry.salaryAmount | number:'1.2-2' }}</span>
-                  <span class="lkr-amount">LKR {{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                <div *ngFor="let entry of getSalaryEntriesForFinancialYear(fy)" class="breakdown-item enhanced">
+                  <div class="item-header">
+                    <span class="month">{{ entry.taxableMonth | date:'MMM yyyy' }}</span>
+                    <span class="salary-date">Received: {{ entry.salaryDate | date:'MMM d' }}</span>
+                  </div>
+                  <div class="item-amounts">
+                    <div class="gross-details">
+                      <span class="currency-amount">{{ entry.currency }} {{ entry.salaryAmount | number:'1.2-2' }}</span>
+                      <span class="lkr-amount">LKR {{ entry.salaryInLKR | number:'1.2-2' }}</span>
+                      <span class="exchange-rate">(Rate: {{ entry.exchangeRate | number:'1.2-2' }})</span>
+                    </div>
+                    <div class="tax-details">
+                      <span class="monthly-tax">Monthly Tax: LKR {{ calculateMonthlyTax(getAnnualSalaryFromEntry(entry)) | number:'1.2-2' }}</span>
+                      <span class="net-salary">Net: LKR {{ (entry.salaryInLKR || 0) - calculateMonthlyTax(getAnnualSalaryFromEntry(entry)) | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="tax-breakdown-toggle">
+                    <button 
+                      class="breakdown-button small" 
+                      (click)="entry.showTaxBreakdown = !entry.showTaxBreakdown"
+                    >
+                      {{ entry.showTaxBreakdown ? 'Hide' : 'Show' }} Tax Details
+                    </button>
+                  </div>
+                  
+                  <div *ngIf="entry.showTaxBreakdown" class="tax-breakdown-details">
+                    <h6>Tax Calculation (Based on Annual Salary: LKR {{ getAnnualSalaryFromEntry(entry) | number:'1.0-0' }})</h6>
+                    <div class="breakdown-brackets">
+                      <div *ngFor="let item of calculateTaxBreakdown(entry)" class="bracket-item">
+                        <div class="bracket-range">
+                          <span>LKR {{ item.rangeMin | number:'1.0-0' }}</span>
+                          <span *ngIf="item.rangeMax; else infinitySpan"> - {{ item.rangeMax | number:'1.0-0' }}</span>
+                          <ng-template #infinitySpan> and above</ng-template>
+                        </div>
+                        <div class="bracket-calculation">
+                          <span class="rate">{{ formatPercentage(item.rate) }}</span>
+                          <span class="annual-tax">LKR {{ item.tax | number:'1.2-2' }}/year</span>
+                          <span class="monthly-tax">LKR {{ (item.tax / 12) | number:'1.2-2' }}/month</span>
+                        </div>
+                      </div>
+                      <div class="total-tax">
+                        <strong>Total Tax: LKR {{ calculateAnnualTax(getAnnualSalaryFromEntry(entry)) | number:'1.2-2' }}/year (LKR {{ calculateMonthlyTax(getAnnualSalaryFromEntry(entry)) | number:'1.2-2' }}/month)</strong>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
