@@ -48,6 +48,7 @@ export class SalaryDistributionComponent implements OnInit {
   constructor() { }
 
   ngOnInit(): void {
+    console.log('SalaryDistributionComponent initialized');
     this.calculatePercentages();
   }
 

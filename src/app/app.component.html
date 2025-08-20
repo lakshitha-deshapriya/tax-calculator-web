@@ -8,20 +8,26 @@
       
       <!-- Profile Button -->
       <div class="profile-section">
-        <div *ngIf="!isSignedIn" class="sign-in-btn-container">
+        <div [hidden]="isSignedIn" class="sign-in-btn-container">
           <div #googleSignInButton class="google-signin-wrapper" 
                [attr.data-initialized]="false"></div>
         </div>
         
-        <div *ngIf="isSignedIn && currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">
-          <button class="profile-btn" (click)="toggleProfileDropdown()">
-            <img [src]="currentUser.picture" [alt]="currentUser.name" class="profile-avatar">
-            <span class="profile-name">{{ currentUser.name }}</span>
+        <div [hidden]="!isSignedIn || !currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">
+          <button 
+            class="profile-btn" 
+            (click)="toggleProfileDropdown()"
+            [attr.aria-expanded]="showProfileDropdown"
+            [attr.aria-label]="currentUser ? ('Profile menu for ' + currentUser.name) : 'Profile menu'"
+            type="button"
+          >
+            <img [src]="currentUser.picture" [alt]="currentUser.name" class="profile-avatar" *ngIf="currentUser">
+            <span class="profile-name" *ngIf="currentUser">{{ currentUser.name }}</span>
             <span class="dropdown-arrow" [class.open]="showProfileDropdown">▼</span>
           </button>
           
-          <div class="dropdown-menu" *ngIf="showProfileDropdown">
-            <div class="dropdown-header">
+          <div [hidden]="!showProfileDropdown" class="dropdown-menu">
+            <div class="dropdown-header" *ngIf="currentUser">
               <img [src]="currentUser.picture" [alt]="currentUser.name" class="dropdown-avatar">
               <div class="user-info">
                 <div class="user-name">{{ currentUser.name }}</div>
@@ -29,7 +35,12 @@
               </div>
             </div>
             <div class="dropdown-divider"></div>
-            <button class="dropdown-item sign-out-item" (click)="signOut()">
+            <button 
+              class="dropdown-item sign-out-item" 
+              (click)="signOut()"
+              type="button"
+              [attr.aria-label]="currentUser ? ('Sign out ' + currentUser.email) : 'Sign out'"
+            >
               <span class="item-icon"></span>
               Sign Out
             </button>
@@ -44,28 +55,28 @@
     <button 
       class="tab-button" 
       [class.active]="activeTab === 'settings'"
-      (click)="activeTab = 'settings'"
+      (click)="setActiveTab('settings')"
     >
       Settings
     </button>
     <button 
       class="tab-button" 
       [class.active]="activeTab === 'salary'"
-      (click)="activeTab = 'salary'"
+      (click)="setActiveTab('salary')"
     >
       Salary Management
     </button>
     <button 
       class="tab-button" 
       [class.active]="activeTab === 'calculator'"
-      (click)="activeTab = 'calculator'"
+      (click)="setActiveTab('calculator')"
     >
       Tax Calculator
     </button>
     <button 
       class="tab-button" 
       [class.active]="activeTab === 'exchange'"
-      (click)="activeTab = 'exchange'"
+      (click)="setActiveTab('exchange')"
     >
       Exchange Rates
     </button>
@@ -74,7 +85,7 @@
       *ngIf="isAdmin"
       class="tab-button admin-tab" 
       [class.active]="activeTab === 'distribution'"
-      (click)="activeTab = 'distribution'"
+      (click)="setActiveTab('distribution')"
       title="Admin Only: Salary Distribution Analysis"
     >
       💰 Salary Distribution
@@ -112,7 +123,7 @@
     </div>
 
     <!-- Admin Only: Salary Distribution Tab -->
-    <div *ngIf="activeTab === 'distribution' && isAdmin" class="tab-content">
+    <div *ngIf="isDistributionTabVisible()" class="tab-content">
       <app-salary-distribution></app-salary-distribution>
     </div>
   </main>
