@@ -3,6 +3,9 @@ export interface TaxConfig {
   defaultCurrency: string;
   salaryEntries: SalaryEntry[];
   taxBrackets: TaxBracket[];
+  epfRate: number; // EPF percentage as decimal (e.g., 0.08 for 8%)
+  etfRate: number; // ETF percentage as decimal (e.g., 0.03 for 3%)
+  distributionItems: DistributionItem[];
 }
 
 export interface SalaryEntry {
@@ -28,5 +31,12 @@ export interface TaxBracket {
   minIncome: number;
   maxIncome: number | null; // null for the highest bracket (infinity)
   taxRate: number; // percentage as decimal (e.g., 0.06 for 6%)
+  description: string;
+}
+
+export interface DistributionItem {
+  id: string;
+  category: string;
+  percentage: number;
   description: string;
 }

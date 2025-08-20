@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket } from '../models/tax-config.model';
+import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket, DistributionItem } from '../models/tax-config.model';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +29,19 @@ export class TaxConfigService {
           config.taxBrackets = this.getDefaultTaxBrackets();
         }
         
+        // Ensure EPF/ETF rates are present
+        if (typeof config.epfRate === 'undefined') {
+          config.epfRate = 0.08;
+        }
+        if (typeof config.etfRate === 'undefined') {
+          config.etfRate = 0.03;
+        }
+        
+        // Ensure distribution items are present
+        if (!config.distributionItems || config.distributionItems.length === 0) {
+          config.distributionItems = this.getDefaultDistributionItems();
+        }
+        
         // Convert string dates back to Date objects
         if (config.salaryEntries) {
           config.salaryEntries = config.salaryEntries.map((entry: any) => ({
@@ -55,7 +68,10 @@ export class TaxConfigService {
       defaultSalaryDate: '01',
       defaultCurrency: 'USD',
       salaryEntries: [],
-      taxBrackets: this.getDefaultTaxBrackets()
+      taxBrackets: this.getDefaultTaxBrackets(),
+      epfRate: 0.08, // 8% EPF
+      etfRate: 0.03, // 3% ETF
+      distributionItems: this.getDefaultDistributionItems()
     };
   }
 
@@ -89,10 +105,49 @@ export class TaxConfigService {
   }
 
   /**
+   * Get default distribution items for net income allocation
+   */
+  getDefaultDistributionItems(): DistributionItem[] {
+    return [
+      {
+        id: '1',
+        category: 'Consumption',
+        percentage: 60,
+        description: 'Monthly living expenses, food, utilities'
+      },
+      {
+        id: '2',
+        category: 'Savings',
+        percentage: 20,
+        description: 'Emergency fund and short-term savings'
+      },
+      {
+        id: '3',
+        category: 'Investments',
+        percentage: 15,
+        description: 'Long-term investments, stocks, bonds'
+      },
+      {
+        id: '4',
+        category: 'Discretionary',
+        percentage: 5,
+        description: 'Entertainment, hobbies, miscellaneous'
+      }
+    ];
+  }
+
+  /**
    * Generate a unique ID for salary entries
    */
   generateSalaryEntryId(): string {
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  }
+
+  /**
+   * Generate a unique ID for distribution items
+   */
+  generateDistributionItemId(): string {
+    return 'dist_' + Date.now().toString() + Math.random().toString(36).substr(2, 9);
   }
 
   /**

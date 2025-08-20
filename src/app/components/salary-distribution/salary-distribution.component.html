@@ -1,112 +1,269 @@
 <div class="salary-distribution-container">
   <div class="header-section">
-    <h2>💰 Salary Distribution Analysis</h2>
-    <p class="subtitle">Analyze and manage your salary breakdown</p>
-    <div class="total-salary">
-      <span class="label">Total Annual Salary:</span>
-      <span class="amount">${{ totalSalary | number:'1.0-0' }}</span>
-    </div>
-  </div>
-
-  <!-- Distribution Chart -->
-  <div class="chart-section">
-    <h3>Distribution Overview</h3>
-    <div class="distribution-chart">
-      <div 
-        *ngFor="let item of distributionItems; let i = index" 
-        class="chart-bar"
-        [class]="'chart-bar-' + getColorClass(i)"
-        [style.height.%]="item.percentage"
-        [title]="item.category + ': $' + item.amount + ' (' + item.percentage.toFixed(1) + '%)'"
-      >
-        <span class="bar-label">{{ item.percentage.toFixed(1) }}%</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Distribution Table -->
-  <div class="table-section">
-    <h3>Detailed Breakdown</h3>
-    <div class="distribution-table">
-      <div class="table-header">
-        <div class="col-category">Category</div>
-        <div class="col-amount">Amount ($)</div>
-        <div class="col-percentage">Percentage</div>
-        <div class="col-description">Description</div>
-        <div class="col-actions">Actions</div>
+    <h2>💰 Monthly Salary Distribution & Net Income Planning</h2>
+    <p class="subtitle">View your actual salary breakdowns with tax, EPF, ETF deductions and plan net income distribution</p>
+    
+    <!-- Financial Year Selection -->
+    <div class="controls-section">
+      <div class="control-group">
+        <label for="financialYear">Financial Year:</label>
+        <select 
+          id="financialYear"
+          [(ngModel)]="selectedFinancialYear" 
+          (ngModelChange)="onFinancialYearChange()"
+          class="financial-year-select"
+        >
+          <option *ngFor="let fy of availableFinancialYears" [ngValue]="fy">
+            {{ fy.label }}
+          </option>
+        </select>
       </div>
       
-      <div 
-        *ngFor="let item of distributionItems; let i = index" 
-        class="table-row"
-        [class]="'row-' + getColorClass(i)"
+      <button 
+        class="btn-configure" 
+        (click)="toggleConfiguration()"
+        [class.active]="isConfiguring"
       >
-        <div class="col-category">
-          <input 
-            type="text" 
-            [(ngModel)]="item.category" 
-            class="category-input"
-          >
-        </div>
-        <div class="col-amount">
-          <input 
-            type="number" 
-            [(ngModel)]="item.amount" 
-            (ngModelChange)="updateAmount(i, $event)"
-            class="amount-input"
-            min="0"
-          >
-        </div>
-        <div class="col-percentage">
-          <span class="percentage-badge" [class]="'badge-' + getColorClass(i)">
-            {{ item.percentage.toFixed(1) }}%
-          </span>
-        </div>
-        <div class="col-description">
-          <input 
-            type="text" 
-            [(ngModel)]="item.description" 
-            class="description-input"
-            placeholder="Enter description"
-          >
-        </div>
-        <div class="col-actions">
-          <button 
-            class="btn-remove" 
-            (click)="removeCategory(i)"
-            [disabled]="distributionItems.length <= 1"
-            title="Remove category"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="table-actions">
-      <button class="btn-add" (click)="addNewCategory()">
-        ➕ Add New Category
+        ⚙️ {{ isConfiguring ? 'Hide' : 'Configure' }} Settings
       </button>
     </div>
   </div>
 
-  <!-- Summary Stats -->
-  <div class="summary-section">
-    <div class="summary-cards">
-      <div class="summary-card">
-        <h4>Highest Component</h4>
-        <p>{{ getHighestComponent()?.category || 'N/A' }}</p>
-        <span class="summary-amount">${{ getHighestComponent()?.amount || 0 | number:'1.0-0' }}</span>
+  <!-- Configuration Panel -->
+  <div class="config-section" *ngIf="isConfiguring">
+    <h3>🔧 Configuration Settings</h3>
+    
+    <!-- EPF/ETF Rates -->
+    <div class="config-rates">
+      <div class="rate-config">
+        <label for="epfRate">EPF Rate (%):</label>
+        <input 
+          type="number" 
+          id="epfRate"
+          [ngModel]="taxConfig.epfRate * 100" 
+          (ngModelChange)="updateEpfRate($event)"
+          class="rate-input"
+          min="0"
+          max="20"
+          step="0.1"
+        >
       </div>
-      <div class="summary-card">
-        <h4>Categories</h4>
-        <p>Total Components</p>
-        <span class="summary-count">{{ distributionItems.length }}</span>
+      <div class="rate-config">
+        <label for="etfRate">ETF Rate (%):</label>
+        <input 
+          type="number" 
+          id="etfRate"
+          [ngModel]="taxConfig.etfRate * 100" 
+          (ngModelChange)="updateEtfRate($event)"
+          class="rate-input"
+          min="0"
+          max="10"
+          step="0.1"
+        >
       </div>
-      <div class="summary-card">
-        <h4>Average Amount</h4>
-        <p>Per Category</p>
-        <span class="summary-amount">${{ (totalSalary / distributionItems.length) | number:'1.0-0' }}</span>
+    </div>
+
+    <!-- Distribution Configuration -->
+    <div class="config-distribution">
+      <h4>Net Income Distribution Categories</h4>
+      <div class="distribution-summary">
+        <span class="percentage-total" [class.invalid]="!isDistributionPercentageValid()">
+          Total: {{ getTotalDistributionPercentage() | number:'1.1-1' }}%
+        </span>
+      </div>
+      
+      <div class="distribution-config-table">
+        <div class="config-table-header">
+          <div class="col-category">Category</div>
+          <div class="col-percentage">Percentage (%)</div>
+          <div class="col-description">Description</div>
+          <div class="col-actions">Actions</div>
+        </div>
+        
+        <div 
+          *ngFor="let item of taxConfig.distributionItems; let i = index" 
+          class="config-table-row"
+          [class]="'row-' + getColorClass(i)"
+        >
+          <div class="col-category">
+            <input 
+              type="text" 
+              [(ngModel)]="item.category"
+              (ngModelChange)="updateDistributionCategory(i, $event)"
+              class="category-input"
+            >
+          </div>
+          <div class="col-percentage">
+            <input 
+              type="number" 
+              [(ngModel)]="item.percentage" 
+              (ngModelChange)="updateDistributionPercentage(i, $event)"
+              class="percentage-input"
+              min="0"
+              max="100"
+              step="0.1"
+            >
+          </div>
+          <div class="col-description">
+            <input 
+              type="text" 
+              [(ngModel)]="item.description"
+              (ngModelChange)="updateDistributionDescription(i, $event)"
+              class="description-input"
+              placeholder="Enter description"
+            >
+          </div>
+          <div class="col-actions">
+            <button 
+              class="btn-remove" 
+              (click)="removeDistributionItem(i)"
+              [disabled]="taxConfig.distributionItems.length <= 1"
+              title="Remove category"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="config-actions">
+        <button class="btn-add" (click)="addDistributionItem()">
+          ➕ Add Category
+        </button>
+        <button 
+          class="btn-normalize" 
+          (click)="normalizeDistributionPercentages()"
+          *ngIf="!isDistributionPercentageValid()"
+        >
+          🔧 Normalize to 100%
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Data Message -->
+  <div class="no-data-message" *ngIf="!selectedFinancialYear || monthlyBreakdowns.length === 0">
+    <div class="no-data-content">
+      <h3>📋 No Salary Data Available</h3>
+      <p>Please add salary entries in the <strong>Salary Management</strong> tab to see your distribution breakdown.</p>
+    </div>
+  </div>
+
+  <!-- Monthly Breakdown Cards -->
+  <div class="monthly-breakdowns" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0">
+    <h3>📊 Monthly Salary Breakdowns for {{ selectedFinancialYear.label }}</h3>
+    
+    <!-- Summary Overview -->
+    <div class="summary-overview" *ngIf="monthlyBreakdowns.length > 1">
+      <h4>Financial Year Summary</h4>
+      <div class="summary-cards">
+        <div class="summary-card gross">
+          <h5>Total Gross</h5>
+          <span class="amount">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
+        </div>
+        <div class="summary-card deductions">
+          <h5>Total Deductions</h5>
+          <span class="amount">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
+        </div>
+        <div class="summary-card net">
+          <h5>Total Net</h5>
+          <span class="amount">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Individual Month Breakdowns -->
+    <div class="monthly-entries">
+      <div 
+        *ngFor="let breakdown of monthlyBreakdowns; let i = index" 
+        class="monthly-entry"
+      >
+        <!-- Month Header -->
+        <div class="entry-header">
+          <div class="month-info">
+            <h4 class="month-title">{{ breakdown.salaryEntry.taxableMonth | date:'MMM yyyy' }}</h4>
+            <span class="received-date">Received: {{ breakdown.salaryEntry.salaryDate | date:'MMM d, yyyy' }}</span>
+          </div>
+        </div>
+
+        <!-- Salary Info Row -->
+        <div class="salary-row">
+          <div class="currency-info">
+            <span class="currency-badge">{{ breakdown.salaryEntry.currency }}</span>
+            <span class="original-amount">{{ breakdown.salaryEntry.salaryAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="tax-info">
+            <span class="tax-label">Monthly Tax:</span>
+            <span class="tax-amount">LKR {{ breakdown.taxAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="net-info">
+            <span class="net-label">Net:</span>
+            <span class="net-amount">LKR {{ breakdown.netIncome | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- LKR Info Row -->
+        <div class="lkr-row">
+          <div class="lkr-info">
+            <span class="lkr-label">LKR</span>
+            <span class="lkr-amount">{{ breakdown.grossSalary | number:'1.2-2' }}</span>
+          </div>
+          <div class="rate-info">
+            <span class="rate-label">Rate:</span>
+            <span class="rate-value">{{ breakdown.salaryEntry.exchangeRate | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Deductions Summary -->
+        <div class="deductions-summary">
+          <div class="deduction-item">
+            <span class="deduction-label">EPF ({{ (taxConfig.epfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="deduction-amount">LKR {{ breakdown.epfAmount | number:'1.0-0' }}</span>
+          </div>
+          <div class="deduction-item">
+            <span class="deduction-label">ETF ({{ (taxConfig.etfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="deduction-amount">LKR {{ breakdown.etfAmount | number:'1.0-0' }}</span>
+          </div>
+          <div class="deduction-item total">
+            <span class="deduction-label">Total Deductions:</span>
+            <span class="deduction-amount">LKR {{ breakdown.totalDeductions | number:'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <!-- Net Income Distribution -->
+        <div class="distribution-summary">
+          <h5 class="distribution-title">💡 Net Income Distribution (LKR {{ breakdown.netIncome | number:'1.0-0' }})</h5>
+          <div class="distribution-grid">
+            <div 
+              *ngFor="let item of taxConfig.distributionItems; let j = index"
+              class="distribution-item"
+              [class]="'item-' + getColorClass(j)"
+            >
+              <span class="category-name">{{ item.category }}:</span>
+              <span class="category-amount">LKR {{ breakdown.distributionAmounts[item.category] | number:'1.0-0' }}</span>
+              <span class="category-percentage">({{ item.percentage | number:'1.1-1' }}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Information Panel -->
+  <div class="info-panel">
+    <h4>ℹ️ How This Works</h4>
+    <div class="info-content">
+      <div class="info-item">
+        <strong>Data Source:</strong> Uses your actual salary entries from Salary Management
+      </div>
+      <div class="info-item">
+        <strong>Tax Calculation:</strong> Uses the same progressive tax calculation as Tax Calculator
+      </div>
+      <div class="info-item">
+        <strong>EPF/ETF:</strong> Configurable rates applied to gross salary (defaults: EPF 8%, ETF 3%)
+      </div>
+      <div class="info-item">
+        <strong>Distribution:</strong> Shows how your net income can be allocated across different categories
       </div>
     </div>
   </div>
