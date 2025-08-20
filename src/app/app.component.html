@@ -9,10 +9,11 @@
       <!-- Profile Button -->
       <div class="profile-section">
         <div *ngIf="!isSignedIn" class="sign-in-btn-container">
-          <div #googleSignInButton class="google-signin-wrapper"></div>
+          <div #googleSignInButton class="google-signin-wrapper" 
+               [attr.data-initialized]="false"></div>
         </div>
         
-        <div *ngIf="isSignedIn && currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">>
+        <div *ngIf="isSignedIn && currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">
           <button class="profile-btn" (click)="toggleProfileDropdown()">
             <img [src]="currentUser.picture" [alt]="currentUser.name" class="profile-avatar">
             <span class="profile-name">{{ currentUser.name }}</span>
@@ -29,7 +30,7 @@
             </div>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item sign-out-item" (click)="signOut()">
-              <span class="item-icon">🚪</span>
+              <span class="item-icon"></span>
               Sign Out
             </button>
           </div>

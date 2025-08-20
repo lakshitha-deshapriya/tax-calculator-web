@@ -94,9 +94,15 @@ export class GoogleAuthService {
         picture: payload.picture
       };
 
+      // Update user state immediately and trigger change detection
       this.userSubject.next(user);
       this.storeUser(user);
       console.log('✅ User signed in successfully:', user);
+      
+      // Force any pending change detection cycles
+      setTimeout(() => {
+        console.log('User state should now be updated in UI');
+      }, 0);
       
       // Show success notification
       this.showNotification('✅ Successfully signed in!', 'success');
@@ -329,18 +335,35 @@ export class GoogleAuthService {
     console.log('Signing out user...');
     const currentUser = this.getCurrentUser();
     
+    // Clear user state immediately
     this.userSubject.next(null);
     this.clearStoredUser();
     
     if (window.google) {
-      window.google.accounts.id.disableAutoSelect();
+      try {
+        window.google.accounts.id.disableAutoSelect();
+      } catch (error) {
+        console.warn('Error disabling auto select:', error);
+      }
     }
+    
+    // Clear any existing sign-in buttons
+    const existingButtons = document.querySelectorAll('.google-signin-wrapper');
+    existingButtons.forEach(button => {
+      button.innerHTML = '';
+      button.setAttribute('data-initialized', 'false');
+    });
     
     console.log('✅ User signed out successfully');
     
     if (currentUser) {
       this.showNotification(`👋 Goodbye, ${currentUser.name}!`, 'success');
     }
+    
+    // Force any pending change detection cycles
+    setTimeout(() => {
+      console.log('Sign-out state should now be updated in UI');
+    }, 0);
   }
 
   public renderSignInButton(element: HTMLElement): void {

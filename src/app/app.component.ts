@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, OnDestroy, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -33,6 +33,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   isAdmin = false;
   showProfileDropdown = false;
   private userSubscription?: Subscription;
+  private buttonRenderAttempts = 0;
+  private readonly maxButtonRenderAttempts = 10;
 
   @ViewChild(TaxCalculatorComponent) taxCalculatorComponent?: TaxCalculatorComponent;
   @ViewChild('googleSignInButton') googleSignInButton?: ElementRef;
@@ -40,7 +42,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService,
-    private googleAuthService: GoogleAuthService
+    private googleAuthService: GoogleAuthService,
+    private cdr: ChangeDetectorRef
   ) {
     // Load or create default tax config
     this.taxConfig = this.taxConfigService.loadTaxConfig() || this.taxConfigService.getDefaultTaxConfig();
@@ -56,6 +59,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     
     // Subscribe to user authentication state
     this.userSubscription = this.googleAuthService.user$.subscribe(user => {
+      console.log('User state changed:', user);
       this.currentUser = user;
       this.isSignedIn = !!user;
       this.isAdmin = user?.email === 'lakshithadeshapriya@gmail.com';
@@ -65,13 +69,13 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
         this.activeTab = 'settings';
       }
 
-      // Re-render Google button when sign-in state changes
-      if (!this.isSignedIn && this.googleSignInButton) {
-        setTimeout(() => {
-          if (this.googleSignInButton) {
-            this.googleAuthService.renderSignInButton(this.googleSignInButton.nativeElement);
-          }
-        }, 100);
+      // Trigger change detection to update the UI immediately
+      this.cdr.detectChanges();
+
+      // Re-render Google button when sign-in state changes to signed out
+      if (!this.isSignedIn) {
+        console.log('User signed out, re-rendering sign-in button');
+        this.renderSignInButtonWithDelay();
       }
     });
   }
@@ -84,11 +88,52 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     // Render Google Sign-In button after view initialization
+    console.log('AfterViewInit: Rendering initial sign-in button');
+    this.renderSignInButtonWithDelay();
+  }
+
+  private renderSignInButtonWithDelay(): void {
+    // Use multiple timeouts to ensure the ViewChild is available and DOM is ready
     setTimeout(() => {
-      if (this.googleSignInButton && !this.isSignedIn) {
-        this.googleAuthService.renderSignInButton(this.googleSignInButton.nativeElement);
-      }
+      this.tryRenderSignInButton();
     }, 100);
+  }
+
+  private tryRenderSignInButton(retryCount: number = 0): void {
+    const maxRetries = Math.min(this.maxButtonRenderAttempts, 5);
+    
+    if (this.isSignedIn) {
+      // Don't render if user is already signed in
+      return;
+    }
+    
+    // First try with ViewChild
+    if (this.googleSignInButton && this.googleSignInButton.nativeElement) {
+      console.log('Rendering sign-in button via ViewChild');
+      this.googleAuthService.renderSignInButton(this.googleSignInButton.nativeElement);
+      this.buttonRenderAttempts++;
+      return;
+    }
+    
+    // Fallback: Query the DOM directly
+    const buttonContainer = document.querySelector('.google-signin-wrapper:not([data-initialized="true"])') as HTMLElement;
+    if (buttonContainer) {
+      console.log('Rendering sign-in button via DOM query');
+      buttonContainer.setAttribute('data-initialized', 'true');
+      this.googleAuthService.renderSignInButton(buttonContainer);
+      this.buttonRenderAttempts++;
+      return;
+    }
+    
+    // Retry if neither method worked and we haven't exceeded max retries
+    if (retryCount < maxRetries) {
+      console.log(`Retry ${retryCount + 1}/${maxRetries} for sign-in button rendering`);
+      setTimeout(() => {
+        this.tryRenderSignInButton(retryCount + 1);
+      }, 200 * (retryCount + 1)); // Increasing delay
+    } else if (retryCount >= maxRetries) {
+      console.warn('Failed to render sign-in button after maximum retries');
+    }
   }
 
   signIn(): void {
@@ -96,8 +141,25 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   signOut(): void {
+    console.log('Sign out initiated');
     this.googleAuthService.signOut();
     this.showProfileDropdown = false;
+    this.buttonRenderAttempts = 0; // Reset counter for fresh attempts
+    
+    // Reset any initialized flags
+    const buttonContainers = document.querySelectorAll('.google-signin-wrapper');
+    buttonContainers.forEach(container => {
+      container.setAttribute('data-initialized', 'false');
+      container.innerHTML = ''; // Clear any existing content
+    });
+    
+    // Force change detection and re-render sign-in button
+    this.cdr.detectChanges();
+    
+    // Additional delay to ensure DOM is updated after *ngIf changes
+    setTimeout(() => {
+      this.renderSignInButtonWithDelay();
+    }, 50);
   }
 
   toggleProfileDropdown(): void {
