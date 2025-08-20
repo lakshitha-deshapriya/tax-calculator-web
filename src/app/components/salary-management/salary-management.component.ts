@@ -49,6 +49,20 @@ export class SalaryManagementComponent implements OnInit {
     return this.formatDateForInput(new Date());
   }
 
+  // Getter and setter for salary date to handle HTML date input formatting
+  get salaryDateForInput(): string {
+    if (this.newSalaryEntry.salaryDate) {
+      return this.formatDateForInput(new Date(this.newSalaryEntry.salaryDate));
+    }
+    return '';
+  }
+
+  set salaryDateForInput(value: string) {
+    if (value) {
+      this.newSalaryEntry.salaryDate = new Date(value);
+    }
+  }
+
   updateAvailableMonths(): void {
     if (this.selectedFinancialYear) {
       this.availableMonths = this.taxConfigService.getAvailableTaxableMonths(
