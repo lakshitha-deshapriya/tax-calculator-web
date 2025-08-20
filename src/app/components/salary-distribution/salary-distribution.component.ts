@@ -33,6 +33,9 @@ export class SalaryDistributionComponent implements OnInit {
   
   // Distribution section collapse state
   isDistributionCollapsed = false;
+  
+  // View mode selection
+  viewMode: 'breakdown' | 'detailed' = 'breakdown';
 
   constructor(private taxConfigService: TaxConfigService) { }
 
@@ -71,6 +74,10 @@ export class SalaryDistributionComponent implements OnInit {
 
   onFinancialYearChange(): void {
     this.calculateDistributions();
+  }
+  
+  onViewModeChange(): void {
+    // View mode changed, nothing special to do here as the template will handle the display
   }
 
   calculateDistributions(): void {
@@ -115,9 +122,9 @@ export class SalaryDistributionComponent implements OnInit {
       });
     });
 
-    // Sort by taxable month (most recent first)
+    // Sort by taxable month (oldest first - ascending order)
     this.monthlyBreakdowns.sort((a, b) => 
-      b.salaryEntry.taxableMonth.getTime() - a.salaryEntry.taxableMonth.getTime()
+      a.salaryEntry.taxableMonth.getTime() - b.salaryEntry.taxableMonth.getTime()
     );
   }
 
@@ -130,7 +137,7 @@ export class SalaryDistributionComponent implements OnInit {
         const entryFY = this.taxConfigService.getFinancialYear(monthString);
         return entryFY.startYear === this.selectedFinancialYear.startYear;
       })
-      .sort((a, b) => new Date(a.salaryDate).getTime() - new Date(b.salaryDate).getTime());
+      .sort((a, b) => new Date(a.taxableMonth).getTime() - new Date(b.taxableMonth).getTime());
   }
 
   calculateCorrectMonthlyTax(entry: SalaryEntry, fy: FinancialYear): number {
@@ -300,5 +307,26 @@ export class SalaryDistributionComponent implements OnInit {
     return this.monthlyBreakdowns.reduce((sum, breakdown) => {
       return sum + (breakdown.distributionAmounts[category] || 0);
     }, 0);
+  }
+
+  // Net Salary Breakdown table methods
+  getUniqueCategories(): string[] {
+    return this.taxConfig.distributionItems.map(item => item.category);
+  }
+
+  formatMonthDisplay(date: Date): string {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  }
+
+  getCategoryAmountForMonth(breakdown: MonthlyDistributionBreakdown, category: string): number {
+    return breakdown.distributionAmounts[category] || 0;
+  }
+
+  getCategoryPercentage(category: string): number {
+    const item = this.taxConfig.distributionItems.find(item => item.category === category);
+    return item ? item.percentage : 0;
   }
 }

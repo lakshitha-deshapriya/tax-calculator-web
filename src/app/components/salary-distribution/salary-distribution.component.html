@@ -3,7 +3,7 @@
     <h2>💰 Monthly Salary Distribution & Net Income Planning</h2>
     <p class="subtitle">View your actual salary breakdowns with tax, EPF, ETF deductions and plan net income distribution</p>
     
-    <!-- Financial Year Selection -->
+    <!-- Financial Year Selection and View Mode -->
     <div class="controls-section">
       <div class="control-group">
         <label for="financialYear">Financial Year:</label>
@@ -16,6 +16,19 @@
           <option *ngFor="let fy of availableFinancialYears" [ngValue]="fy">
             {{ fy.label }}
           </option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label for="viewMode">View:</label>
+        <select 
+          id="viewMode"
+          [(ngModel)]="viewMode" 
+          (ngModelChange)="onViewModeChange()"
+          class="view-mode-select"
+        >
+          <option value="breakdown">Net Salary Breakdown</option>
+          <option value="detailed">Detailed View</option>
         </select>
       </div>
       
@@ -149,8 +162,8 @@
     </div>
   </div>
 
-  <!-- Monthly Breakdown Cards -->
-  <div class="monthly-breakdowns" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0">
+  <!-- Monthly Breakdown Cards - Detailed View -->
+  <div class="monthly-breakdowns" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0 && viewMode === 'detailed'">
     <h3>📊 Monthly Salary Breakdowns for {{ selectedFinancialYear.label }}</h3>
     
     <!-- Summary Overview -->
@@ -244,6 +257,127 @@
               <span class="category-percentage">({{ item.percentage | number:'1.1-1' }}%)</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Net Salary Breakdown Table View (Default) -->
+  <div class="net-breakdown-table" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0 && viewMode === 'breakdown'">
+    <h3>📊 Net Salary Breakdown Table for {{ selectedFinancialYear.label }}</h3>
+    
+    <!-- Summary Overview -->
+    <div class="summary-overview" *ngIf="monthlyBreakdowns.length > 1">
+      <h4>Financial Year Summary</h4>
+      <div class="summary-cards">
+        <div class="summary-card gross">
+          <h5>Total Gross</h5>
+          <span class="amount">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
+        </div>
+        <div class="summary-card deductions">
+          <h5>Total Deductions</h5>
+          <span class="amount">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
+        </div>
+        <div class="summary-card net">
+          <h5>Total Net</h5>
+          <span class="amount">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="breakdown-table-container">
+      <div class="table-scroll-wrapper">
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th class="month-col">Month</th>
+              <th class="amount-col">Gross Salary (LKR)</th>
+              <th class="amount-col">Tax</th>
+              <th class="amount-col">EPF</th>
+              <th class="amount-col">ETF</th>
+              <th class="amount-col">Total Deductions</th>
+              <th class="amount-col net-col">Net Income</th>
+              <th *ngFor="let category of getUniqueCategories()" class="category-col">
+                {{ category }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let breakdown of monthlyBreakdowns; let i = index" class="data-row">
+              <td class="month-cell">
+                <div class="month-info">
+                  <span class="month-name">{{ formatMonthDisplay(breakdown.salaryEntry.taxableMonth) }}</span>
+                  <span class="received-date">{{ breakdown.salaryEntry.salaryDate | date:'MMM d' }}</span>
+                </div>
+              </td>
+              <td class="amount-cell gross">
+                {{ breakdown.grossSalary | number:'1.0-0' }}
+              </td>
+              <td class="amount-cell">
+                {{ breakdown.taxAmount | number:'1.0-0' }}
+              </td>
+              <td class="amount-cell">
+                {{ breakdown.epfAmount | number:'1.0-0' }}
+              </td>
+              <td class="amount-cell">
+                {{ breakdown.etfAmount | number:'1.0-0' }}
+              </td>
+              <td class="amount-cell">
+                {{ breakdown.totalDeductions | number:'1.0-0' }}
+              </td>
+              <td class="amount-cell net">
+                {{ breakdown.netIncome | number:'1.0-0' }}
+              </td>
+              <td *ngFor="let category of getUniqueCategories()" class="category-cell">
+                <div class="category-amount">
+                  <span class="amount">{{ getCategoryAmountForMonth(breakdown, category) | number:'1.0-0' }}</span>
+                  <span class="percentage">({{ getCategoryPercentage(category) | number:'1.1-1' }}%)</span>
+                </div>
+              </td>
+            </tr>
+            <!-- Totals Row -->
+            <tr class="totals-row" *ngIf="monthlyBreakdowns.length > 1">
+              <td class="month-cell total-label">
+                <strong>TOTAL</strong>
+              </td>
+              <td class="amount-cell gross total">
+                <strong>{{ getTotalGrossSalary() | number:'1.0-0' }}</strong>
+              </td>
+              <td class="amount-cell total">
+                <strong>{{ getTotalTaxAmount() | number:'1.0-0' }}</strong>
+              </td>
+              <td class="amount-cell total">
+                <strong>{{ getTotalEpfAmount() | number:'1.0-0' }}</strong>
+              </td>
+              <td class="amount-cell total">
+                <strong>{{ getTotalEtfAmount() | number:'1.0-0' }}</strong>
+              </td>
+              <td class="amount-cell total">
+                <strong>{{ getTotalDeductions() | number:'1.0-0' }}</strong>
+              </td>
+              <td class="amount-cell net total">
+                <strong>{{ getTotalNetIncome() | number:'1.0-0' }}</strong>
+              </td>
+              <td *ngFor="let category of getUniqueCategories()" class="category-cell total">
+                <div class="category-amount">
+                  <span class="amount"><strong>{{ getCategoryTotalForYear(category) | number:'1.0-0' }}</strong></span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="table-legend">
+      <h5>💡 Category Distribution Legend</h5>
+      <div class="legend-items">
+        <div *ngFor="let item of taxConfig.distributionItems; let j = index" class="legend-item" [class]="'item-' + getColorClass(j)">
+          <span class="legend-category">{{ item.category }}</span>
+          <span class="legend-percentage">{{ item.percentage | number:'1.1-1' }}%</span>
+          <span class="legend-description">{{ item.description }}</span>
         </div>
       </div>
     </div>

@@ -6,7 +6,6 @@ import { ExchangeRateProductionService as ExchangeRateService } from './services
 import { TaxConfigService } from './services/tax-config.service';
 import { GoogleAuthService, GoogleUser } from './services/google-auth.service';
 import { TaxConfig } from './models/tax-config.model';
-import { ExchangeRateComponent } from './components/exchange-rate/exchange-rate.component';
 import { SettingsComponent } from './components/settings/settings.component';
 import { SalaryManagementComponent } from './components/salary-management/salary-management.component';
 import { TaxCalculatorComponent } from './components/tax-calculator/tax-calculator.component';
@@ -16,7 +15,7 @@ import { DebugPanelComponent } from './components/debug-panel/debug-panel.compon
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, ExchangeRateComponent, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, ClickOutsideDirective, DebugPanelComponent],
+  imports: [CommonModule, FormsModule, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, ClickOutsideDirective, DebugPanelComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -25,7 +24,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Tax calculator related properties
   taxConfig: TaxConfig;
-  activeTab: 'settings' | 'salary' | 'calculator' | 'exchange' | 'distribution' = 'settings';
+  activeTab: 'settings' | 'salary' | 'calculator' | 'distribution' = 'settings';
   
   // User authentication properties
   currentUser: GoogleUser | null = null;
@@ -235,7 +234,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  setActiveTab(tab: 'settings' | 'salary' | 'calculator' | 'exchange' | 'distribution'): void {
+  setActiveTab(tab: 'settings' | 'salary' | 'calculator' | 'distribution'): void {
     console.log('Setting active tab to:', tab);
     console.log('Current admin status:', this.isAdmin);
     console.log('Current user:', this.currentUser?.email);

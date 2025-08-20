@@ -73,13 +73,6 @@
     >
       Tax Calculator
     </button>
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'exchange'"
-      (click)="setActiveTab('exchange')"
-    >
-      Exchange Rates
-    </button>
     <!-- Admin only tab -->
     <button 
       *ngIf="isAdmin"
@@ -115,11 +108,6 @@
       <app-tax-calculator 
         [taxConfig]="taxConfig">
       </app-tax-calculator>
-    </div>
-
-    <!-- Exchange Rate Lookup Tab -->
-    <div *ngIf="activeTab === 'exchange'" class="tab-content">
-      <app-exchange-rate></app-exchange-rate>
     </div>
 
     <!-- Admin Only: Salary Distribution Tab -->
