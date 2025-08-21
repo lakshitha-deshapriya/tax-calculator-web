@@ -62,7 +62,7 @@
           <span class="deduction-label">ETF ({{ (taxConfig.etfRate * 100) | number:'1.1-1' }}%):</span>
           <span class="deduction-amount">LKR {{ breakdown.etfAmount | number:'1.0-0' }}</span>
         </div>
-        <div class="deduction-item total">
+        <div class="deduction-item">
           <span class="deduction-label">Total Deductions:</span>
           <span class="deduction-amount">LKR {{ breakdown.totalDeductions | number:'1.0-0' }}</span>
         </div>
@@ -70,7 +70,7 @@
 
       <!-- Net Income Distribution -->
       <div class="distribution-summary">
-        <h5 class="distribution-title">💡 Net Income Distribution (LKR {{ breakdown.netIncome | number:'1.0-0' }})</h5>
+        <h5 class="distribution-title">Net Income Distribution (LKR {{ breakdown.netIncome | number:'1.0-0' }})</h5>
         <div class="distribution-grid">
           <div 
             *ngFor="let item of taxConfig.distributionItems; let j = index"

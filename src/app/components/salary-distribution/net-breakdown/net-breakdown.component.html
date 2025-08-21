@@ -97,7 +97,7 @@
   
   <!-- Legend -->
   <div class="table-legend">
-    <h5>💡 Category Distribution Legend</h5>
+    <h5>Category Distribution Legend</h5>
     <div class="legend-items">
       <div *ngFor="let item of taxConfig.distributionItems; let j = index" class="legend-item" [class]="'item-' + getColorClass(j)">
         <span class="legend-category">{{ item.category }}</span>
