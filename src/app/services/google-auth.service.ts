@@ -24,14 +24,25 @@ export interface GoogleUser {
   picture: string;
 }
 
+export interface GuestUser {
+  id: string;
+  name: string;
+  email: string;
+  picture: string;
+  isGuest: true;
+}
+
+export type User = GoogleUser | GuestUser;
+
 @Injectable({
   providedIn: 'root'
 })
 export class GoogleAuthService {
   private readonly CLIENT_ID = authConfig.googleClientId; // Uses config file
-  private userSubject = new BehaviorSubject<GoogleUser | null>(null);
+  private userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
   private isInitialized = false;
+  private hasShownInitialLogin = false;
 
   constructor() {
     this.loadGoogleScript();
@@ -97,6 +108,7 @@ export class GoogleAuthService {
       // Update user state immediately and trigger change detection
       this.userSubject.next(user);
       this.storeUser(user);
+      this.hasShownInitialLogin = true; // Mark that user has seen login
       console.log('✅ User signed in successfully:', user);
       
       // Force any pending change detection cycles
@@ -338,8 +350,9 @@ export class GoogleAuthService {
     // Clear user state immediately
     this.userSubject.next(null);
     this.clearStoredUser();
+    this.hasShownInitialLogin = false; // Reset login screen flag
     
-    if (window.google) {
+    if (window.google && !this.isGuestUser()) {
       try {
         window.google.accounts.id.disableAutoSelect();
       } catch (error) {
@@ -492,7 +505,7 @@ export class GoogleAuthService {
     }
   }
 
-  public getCurrentUser(): GoogleUser | null {
+  public getCurrentUser(): User | null {
     return this.userSubject.value;
   }
 
@@ -500,25 +513,71 @@ export class GoogleAuthService {
     return this.userSubject.value !== null;
   }
 
+  public isGuestUser(): boolean {
+    const user = this.userSubject.value;
+    return user !== null && 'isGuest' in user && user.isGuest === true;
+  }
+
+  public isGoogleUser(): boolean {
+    const user = this.userSubject.value;
+    return user !== null && !('isGuest' in user);
+  }
+
+  public shouldShowInitialLogin(): boolean {
+    return !this.hasShownInitialLogin && !this.isSignedIn();
+  }
+
+  public continueAsGuest(): void {
+    console.log('User continuing as guest');
+    const guestUser: GuestUser = {
+      id: 'guest-' + Date.now(),
+      name: 'Guest User',
+      email: 'guest@local',
+      picture: 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="20" fill="#667eea"/>
+          <circle cx="20" cy="16" r="6" fill="white"/>
+          <path d="M20 24c-6 0-11 3.5-11 8v1c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2v-1c0-4.5-5-8-11-8z" fill="white"/>
+        </svg>
+      `),
+      isGuest: true
+    };
+    
+    this.userSubject.next(guestUser);
+    this.storeUser(guestUser);
+    this.hasShownInitialLogin = true;
+    console.log('✅ User continuing as guest:', guestUser);
+    
+    this.showNotification('✅ Welcome! Using local storage for data.', 'success');
+  }
+
   public isConfigured(): boolean {
     return this.CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE';
   }
 
-  private storeUser(user: GoogleUser): void {
+  private storeUser(user: User): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('googleUser', JSON.stringify(user));
+      localStorage.setItem('hasShownInitialLogin', 'true');
     }
   }
 
   private clearStoredUser(): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('googleUser');
+      localStorage.removeItem('hasShownInitialLogin');
     }
   }
 
   private checkStoredUser(): void {
     if (typeof localStorage !== 'undefined') {
       const storedUser = localStorage.getItem('googleUser');
+      const hasShownLogin = localStorage.getItem('hasShownInitialLogin');
+      
+      if (hasShownLogin === 'true') {
+        this.hasShownInitialLogin = true;
+      }
+      
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);

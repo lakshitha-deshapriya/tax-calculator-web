@@ -4,17 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ExchangeRateProductionService as ExchangeRateService } from './services/exchange-rate-production.service';
 import { TaxConfigService } from './services/tax-config.service';
-import { GoogleAuthService, GoogleUser } from './services/google-auth.service';
+import { GoogleAuthService, User } from './services/google-auth.service';
 import { TaxConfig } from './models/tax-config.model';
 import { SettingsComponent } from './components/settings/settings.component';
 import { SalaryManagementComponent } from './components/salary-management/salary-management.component';
 import { TaxCalculatorComponent } from './components/tax-calculator/tax-calculator.component';
 import { SalaryDistributionComponent } from './components/salary-distribution/salary-distribution.component';
+import { LoginComponent } from './components/login/login.component';
 import { ClickOutsideDirective } from './directives/click-outside.directive';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, ClickOutsideDirective],
+  imports: [CommonModule, FormsModule, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, LoginComponent, ClickOutsideDirective],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -26,9 +27,11 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   activeTab: 'settings' | 'salary' | 'calculator' | 'distribution' = 'settings';
   
   // User authentication properties
-  currentUser: GoogleUser | null = null;
+  currentUser: User | null = null;
   isSignedIn = false;
   isAdmin = false;
+  isGuestUser = false;
+  showInitialLogin = true;
   showProfileDropdown = false;
   private userSubscription?: Subscription;
   private buttonRenderAttempts = 0;
@@ -56,6 +59,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     console.log('AppComponent initialized');
     
+    // Check if we should show initial login
+    this.showInitialLogin = this.googleAuthService.shouldShowInitialLogin();
+    
     // Subscribe to user authentication state
     this.userSubscription = this.googleAuthService.user$.subscribe(user => {
       console.log('User state changed:', user);
@@ -63,7 +69,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       
       this.currentUser = user;
       this.isSignedIn = !!user;
-      this.isAdmin = user?.email === 'lakshithadeshapriya@gmail.com';
+      this.isGuestUser = this.googleAuthService.isGuestUser();
+      this.isAdmin = user?.email === 'lakshithadeshapriya@gmail.com' && !this.isGuestUser;
+      
+      // Hide login screen when user signs in or continues as guest
+      if (user) {
+        this.showInitialLogin = false;
+      }
+      
+      console.log('User info:', {
+        isSignedIn: this.isSignedIn,
+        isGuestUser: this.isGuestUser,
+        isAdmin: this.isAdmin,
+        email: user?.email
+      });
       
       console.log('Admin status:', this.isAdmin, 'Was admin:', wasAdmin);
       
@@ -184,6 +203,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showProfileDropdown = false;
     this.buttonRenderAttempts = 0; // Reset counter for fresh attempts
     
+    // Show login screen again
+    this.showInitialLogin = true;
+    
     // Reset any initialized flags
     const buttonContainers = document.querySelectorAll('.google-signin-wrapper');
     buttonContainers.forEach(container => {
@@ -193,11 +215,6 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     
     // Force change detection and re-render sign-in button
     this.cdr.detectChanges();
-    
-    // Additional delay to ensure DOM is updated after *ngIf changes
-    setTimeout(() => {
-      this.renderSignInButtonWithDelay();
-    }, 50);
   }
 
   toggleProfileDropdown(): void {
@@ -289,5 +306,25 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.taxCalculatorComponent) {
       this.taxCalculatorComponent.onTaxConfigChange();
     }
+  }
+
+  onContinueAsGuest(): void {
+    console.log('User chose to continue as guest');
+    this.googleAuthService.continueAsGuest();
+  }
+
+  getUserDisplayName(): string {
+    if (!this.currentUser) return '';
+    return this.isGuestUser ? 'Guest User' : this.currentUser.name;
+  }
+
+  getUserStatusText(): string {
+    if (this.isGuestUser) {
+      return 'Signed in as Guest (Local Storage)';
+    }
+    if (this.isSignedIn) {
+      return 'Signed in with Google (Online Storage)';
+    }
+    return '';
   }
 }

@@ -1,118 +1,97 @@
 <div class="container">
-  <header class="header">
-    <div class="header-content">
-      <div class="title-section">
-        <h1>{{ title }}</h1>
-        <p class="subtitle">Calculate your income tax with real-time currency exchange rates from CBSL</p>
-      </div>
-      
-      <!-- Profile Button -->
-      <div class="profile-section">
-        <div [hidden]="isSignedIn" class="sign-in-btn-container">
-          <div #googleSignInButton class="google-signin-wrapper" 
-               [attr.data-initialized]="false"></div>
+  <!-- Login Screen -->
+  <app-login *ngIf="showInitialLogin" (continueAsGuest)="onContinueAsGuest()">
+  </app-login>
+
+  <div *ngIf="!showInitialLogin">
+    <header class="header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1>{{ title }}</h1>
+          <p class="subtitle">Calculate your income tax with real-time currency exchange rates from CBSL</p>
         </div>
-        
-        <div [hidden]="!isSignedIn || !currentUser" class="profile-dropdown" clickOutside (clickOutside)="closeProfileDropdown()">
-          <button 
-            class="profile-btn" 
-            (click)="toggleProfileDropdown()"
-            [attr.aria-expanded]="showProfileDropdown"
-            [attr.aria-label]="currentUser ? ('Profile menu for ' + currentUser.name) : 'Profile menu'"
-            type="button"
-          >
-            <img [src]="currentUser.picture" [alt]="currentUser.name" class="profile-avatar" *ngIf="currentUser">
-            <span class="profile-name" *ngIf="currentUser">{{ currentUser.name }}</span>
-            <span class="dropdown-arrow" [class.open]="showProfileDropdown">▼</span>
-          </button>
-          
-          <div [hidden]="!showProfileDropdown" class="dropdown-menu">
-            <div class="dropdown-header" *ngIf="currentUser">
-              <img [src]="currentUser.picture" [alt]="currentUser.name" class="dropdown-avatar">
-              <div class="user-info">
-                <div class="user-name">{{ currentUser.name }}</div>
-                <div class="user-email">{{ currentUser.email }}</div>
+
+        <div class="profile-section">
+          <div [hidden]="isSignedIn" class="sign-in-btn-container">
+            <div #googleSignInButton class="google-signin-wrapper" [attr.data-initialized]="false"></div>
+          </div>
+
+          <div [hidden]="!isSignedIn || !currentUser" class="profile-dropdown" clickOutside
+            (clickOutside)="closeProfileDropdown()">
+            <button class="profile-btn" (click)="toggleProfileDropdown()" [attr.aria-expanded]="showProfileDropdown"
+              [attr.aria-label]="currentUser ? ('Profile menu for ' + getUserDisplayName()) : 'Profile menu'"
+              type="button">
+              <img [src]="currentUser.picture" [alt]="getUserDisplayName()" class="profile-avatar" *ngIf="currentUser">
+              <div class="profile-info">
+                <span class="profile-name">{{ getUserDisplayName() }}</span>
+                <span class="profile-status" *ngIf="isGuestUser || isSignedIn">{{ getUserStatusText() }}</span>
               </div>
-            </div>
-            <div class="dropdown-divider"></div>
-            <button 
-              class="dropdown-item sign-out-item" 
-              (click)="signOut()"
-              type="button"
-              [attr.aria-label]="currentUser ? ('Sign out ' + currentUser.email) : 'Sign out'"
-            >
-              <span class="item-icon"></span>
-              Sign Out
+              <span class="dropdown-arrow" [class.open]="showProfileDropdown">▼</span>
             </button>
+
+            <div [hidden]="!showProfileDropdown" class="dropdown-menu">
+              <div class="dropdown-header" *ngIf="currentUser">
+                <img [src]="currentUser.picture" [alt]="getUserDisplayName()" class="dropdown-avatar">
+                <div class="user-info">
+                  <div class="user-name">{{ getUserDisplayName() }}</div>
+                  <div class="user-email" *ngIf="!isGuestUser">{{ currentUser.email }}</div>
+                  <div class="user-status">{{ getUserStatusText() }}</div>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item sign-out-item" (click)="signOut()" type="button"
+                [attr.aria-label]="isGuestUser ? 'Switch User' : ('Sign out ' + (currentUser?.email || ''))">
+                <span class="item-icon"></span>
+                {{ isGuestUser ? 'Switch User' : 'Sign Out' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Navigation Tabs -->
-  <div class="tab-navigation">
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'settings'"
-      (click)="setActiveTab('settings')"
-    >
-      Settings
-    </button>
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'salary'"
-      (click)="setActiveTab('salary')"
-    >
-      Salary Management
-    </button>
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'calculator'"
-      (click)="setActiveTab('calculator')"
-    >
-      Tax Calculator
-    </button>
-    <!-- Admin only tab -->
-    <button 
-      *ngIf="isAdmin"
-      class="tab-button" 
-      [class.active]="activeTab === 'distribution'"
-      (click)="setActiveTab('distribution')"
-      title="Admin Only: Salary Distribution Analysis"
-    >
-      💰 Salary Distribution
-    </button>
+    <!-- Navigation Tabs -->
+    <div class="tab-navigation">
+      <button class="tab-button" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+        Settings
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'salary'" (click)="setActiveTab('salary')">
+        Salary Management
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'calculator'" (click)="setActiveTab('calculator')">
+        Tax Calculator
+      </button>
+      <!-- Admin only tab -->
+      <button *ngIf="isAdmin" class="tab-button" [class.active]="activeTab === 'distribution'"
+        (click)="setActiveTab('distribution')" title="Admin Only: Salary Distribution Analysis">
+        Salary Distribution
+      </button>
+    </div>
+
+    <main class="main-content">
+
+      <!-- Settings Tab -->
+      <div *ngIf="activeTab === 'settings'" class="tab-content">
+        <app-settings [taxConfig]="taxConfig" (configChanged)="onConfigChanged()">
+        </app-settings>
+      </div>
+
+      <!-- Salary Management Tab -->
+      <div *ngIf="activeTab === 'salary'" class="tab-content">
+        <app-salary-management [taxConfig]="taxConfig" (configChanged)="onConfigChanged()">
+        </app-salary-management>
+      </div>
+
+      <!-- Tax Calculator Tab -->
+      <div *ngIf="activeTab === 'calculator'" class="tab-content">
+        <app-tax-calculator [taxConfig]="taxConfig">
+        </app-tax-calculator>
+      </div>
+
+      <!-- Admin Only: Salary Distribution Tab -->
+      <div *ngIf="isDistributionTabVisible()" class="tab-content">
+        <app-salary-distribution></app-salary-distribution>
+      </div>
+    </main>
   </div>
-
-  <main class="main-content">
-    
-    <!-- Settings Tab -->
-    <div *ngIf="activeTab === 'settings'" class="tab-content">
-      <app-settings 
-        [taxConfig]="taxConfig" 
-        (configChanged)="onConfigChanged()">
-      </app-settings>
-    </div>
-
-    <!-- Salary Management Tab -->
-    <div *ngIf="activeTab === 'salary'" class="tab-content">
-      <app-salary-management 
-        [taxConfig]="taxConfig" 
-        (configChanged)="onConfigChanged()">
-      </app-salary-management>
-    </div>
-
-    <!-- Tax Calculator Tab -->
-    <div *ngIf="activeTab === 'calculator'" class="tab-content">
-      <app-tax-calculator 
-        [taxConfig]="taxConfig">
-      </app-tax-calculator>
-    </div>
-
-    <!-- Admin Only: Salary Distribution Tab -->
-    <div *ngIf="isDistributionTabVisible()" class="tab-content">
-      <app-salary-distribution></app-salary-distribution>
-    </div>
-  </main>
 </div>
