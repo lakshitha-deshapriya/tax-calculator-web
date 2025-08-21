@@ -17,11 +17,11 @@
       <span class="label">Total ETF ({{ (taxConfig.etfRate * 100) | number:'1.1-1' }}%):</span>
       <span class="value etf">LKR {{ getTotalEtfAmount() | number:'1.0-0' }}</span>
     </div>
-    <div class="summary-row total-row">
+    <div class="summary-row">
       <span class="label">Total Deductions:</span>
       <span class="value deductions">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
     </div>
-    <div class="summary-row net-row">
+    <div class="summary-row">
       <span class="label">Total Net Income:</span>
       <span class="value net">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
     </div>
