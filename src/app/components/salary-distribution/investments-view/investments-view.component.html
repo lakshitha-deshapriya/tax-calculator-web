@@ -41,10 +41,22 @@
 
     <!-- Investment Methods Configuration -->
     <div class="config-section">
-      <h4>Investment Method Allocation:</h4>
+      <div class="section-header">
+        <h4>Investment Method Allocation:</h4>
+        <button class="btn-primary btn-small" (click)="addNewMethod()">
+          + Add Method
+        </button>
+      </div>
+      
       <div class="methods-config">
-        <div class="method-config" *ngFor="let method of investmentConfig.investmentMethods">
-          <label>{{ method.name }}</label>
+        <div class="method-config" *ngFor="let method of investmentConfig.investmentMethods; let i = index">
+          <input 
+            type="text"
+            [(ngModel)]="method.name" 
+            (ngModelChange)="saveInvestmentConfig()"
+            class="method-name-input"
+            placeholder="Method name"
+          />
           <input 
             type="number" 
             [(ngModel)]="method.percentage" 
@@ -54,8 +66,29 @@
             class="percentage-input"
           />
           <span>%</span>
-          <small>{{ method.description }}</small>
+          <input 
+            type="text"
+            [(ngModel)]="method.description" 
+            (ngModelChange)="saveInvestmentConfig()"
+            class="method-description-input"
+            placeholder="Description"
+          />
+          <button 
+            class="btn-danger btn-small" 
+            (click)="removeMethod(method.id)"
+            [disabled]="investmentConfig.investmentMethods.length <= 1"
+            title="Remove method"
+          >
+            ✕
+          </button>
         </div>
+        
+        <div class="percentage-summary">
+          <strong>Total: {{ getTotalMethodPercentage() }}% 
+            <span *ngIf="!isMethodPercentageValid()" class="error-text">(Must equal 100%)</span>
+          </strong>
+        </div>
+        
         <div class="percentage-warning" *ngIf="!isMethodPercentageValid()">
           ⚠️ Total percentage must equal 100%
         </div>
@@ -164,6 +197,25 @@
             </td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td><strong>{{ getTotalInvestmentTargetForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td><strong>{{ getTotalActualInvestmentsForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td><strong>{{ getTotalRemainingToInvestForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td>
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill" 
+                  [style.width.%]="getTotalInvestmentTargetForYear() > 0 ? (getTotalActualInvestmentsForYear() / getTotalInvestmentTargetForYear()) * 100 : 0"
+                ></div>
+              </div>
+              <span class="progress-text">
+                <strong>{{ (getTotalInvestmentTargetForYear() > 0 ? ((getTotalActualInvestmentsForYear() / getTotalInvestmentTargetForYear()) * 100) : 0) | number:'1.2-2' }}%</strong>
+              </span>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
 
@@ -189,6 +241,15 @@
             <td>{{ summary.totalInvestmentTarget | currency:'LKR':'symbol':'1.2-2' }}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td><strong>{{ getTotalEpfForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td><strong>{{ getTotalEtfForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td><strong>{{ getTotalSelectedCategoriesForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+            <td><strong>{{ getTotalInvestmentTargetForYear() | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
 

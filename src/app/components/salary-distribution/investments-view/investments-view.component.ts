@@ -256,6 +256,44 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
     }
   }
 
+  addNewMethod(): void {
+    const newMethod: InvestmentMethod = {
+      id: this.generateMethodId(),
+      name: 'New Method',
+      percentage: 0,
+      description: 'New investment method'
+    };
+    
+    this.investmentConfig.investmentMethods.push(newMethod);
+    this.saveInvestmentConfig();
+  }
+
+  removeMethod(methodId: string): void {
+    if (this.investmentConfig.investmentMethods.length <= 1) {
+      return; // Don't allow removing the last method
+    }
+    
+    this.investmentConfig.investmentMethods = this.investmentConfig.investmentMethods
+      .filter(method => method.id !== methodId);
+    
+    // Remove any investment entries for this method
+    this.investmentEntries = this.investmentEntries
+      .filter(entry => entry.methodId !== methodId);
+    
+    this.saveInvestmentConfig();
+    this.saveInvestmentEntries();
+    this.calculateInvestmentSummaries();
+  }
+
+  getTotalMethodPercentage(): number {
+    return this.investmentConfig.investmentMethods
+      .reduce((total, method) => total + (method.percentage || 0), 0);
+  }
+
+  private generateMethodId(): string {
+    return 'method_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
   toggleCategorySelection(category: string): void {
     const index = this.investmentConfig.targetInvestmentCategories.indexOf(category);
     if (index > -1) {
@@ -308,6 +346,18 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
 
   getMethodName(methodId: string): string {
     return this.investmentConfig.investmentMethods.find(m => m.id === methodId)?.name || methodId;
+  }
+
+  getTotalEpfForYear(): number {
+    return this.monthlyInvestmentSummaries.reduce((sum, summary) => sum + summary.epfAmount, 0);
+  }
+
+  getTotalEtfForYear(): number {
+    return this.monthlyInvestmentSummaries.reduce((sum, summary) => sum + summary.etfAmount, 0);
+  }
+
+  getTotalSelectedCategoriesForYear(): number {
+    return this.monthlyInvestmentSummaries.reduce((sum, summary) => sum + summary.selectedCategoriesAmount, 0);
   }
 
   // UI methods
