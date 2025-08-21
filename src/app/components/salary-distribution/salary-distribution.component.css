@@ -31,3 +31,22 @@
 .no-data-content h3{color:#6c757d;margin-bottom:10px}
 .no-data-content p{color:#6c757d;font-size:16px}
 @media (max-width:768px){.controls-section{flex-direction:column;gap:15px}.control-group{justify-content:center}.config-table-header,.config-table-row{grid-template-columns:1fr;gap:10px}.config-rates{grid-template-columns:1fr}}
+
+/* Config Hint Styles */
+.config-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.config-hint {
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  color: #92400e;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: inline-block;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+}

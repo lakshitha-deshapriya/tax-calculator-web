@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { SalaryCalculationService } from '../../services/salary-calculation.service';
+import { ConfigurationService } from '../../services/configuration.service';
 import { TaxConfig, SalaryEntry, FinancialYear, DistributionItem, MonthlyBreakdown } from '../../models/tax-config.model';
 import { NetBreakdownComponent } from './net-breakdown/net-breakdown.component';
 import { DetailedViewComponent } from './detailed-view/detailed-view.component';
@@ -32,18 +33,13 @@ export class SalaryDistributionComponent implements OnInit {
   selectedFinancialYear!: FinancialYear;
   monthlyBreakdowns: MonthlyBreakdown[] = [];
   
-  // Configuration mode
-  isConfiguring = false;
-  
-  // Distribution section collapse state
-  isDistributionCollapsed = false;
-  
   // View mode selection
   viewMode: 'breakdown' | 'detailed' | 'investments' = 'breakdown';
 
   constructor(
     private taxConfigService: TaxConfigService,
-    private salaryCalculationService: SalaryCalculationService
+    private salaryCalculationService: SalaryCalculationService,
+    private configService: ConfigurationService
   ) { }
 
   ngOnInit(): void {
@@ -117,70 +113,21 @@ export class SalaryDistributionComponent implements OnInit {
       .sort((a, b) => new Date(a.taxableMonth).getTime() - new Date(b.taxableMonth).getTime());
   }
 
-  // Configuration methods
-  toggleConfiguration(): void {
-    this.isConfiguring = !this.isConfiguring;
+  // Helper methods for getting configurations
+  getEpfRatePercentage(): number {
+    return this.configService.getEpfRatePercentage();
   }
 
-  toggleDistributionSection(): void {
-    this.isDistributionCollapsed = !this.isDistributionCollapsed;
-  }
-
-  updateEpfRate(newRate: number): void {
-    this.taxConfig.epfRate = newRate / 100; // Convert percentage to decimal
-    this.saveTaxConfig();
-    this.calculateDistributions();
-  }
-
-  updateEtfRate(newRate: number): void {
-    this.taxConfig.etfRate = newRate / 100; // Convert percentage to decimal
-    this.saveTaxConfig();
-    this.calculateDistributions();
-  }
-
-  updateDistributionPercentage(index: number, newPercentage: number): void {
-    this.taxConfig.distributionItems[index].percentage = newPercentage;
-    this.saveTaxConfig();
-    this.calculateDistributions();
-  }
-
-  addDistributionItem(): void {
-    const newItem: DistributionItem = {
-      id: this.taxConfigService.generateDistributionItemId(),
-      category: 'New Category',
-      percentage: 0,
-      description: 'Enter description'
-    };
-    this.taxConfig.distributionItems.push(newItem);
-    this.saveTaxConfig();
-    this.calculateDistributions();
-  }
-
-  removeDistributionItem(index: number): void {
-    if (this.taxConfig.distributionItems.length > 1) {
-      this.taxConfig.distributionItems.splice(index, 1);
-      this.saveTaxConfig();
-      this.calculateDistributions();
-    }
-  }
-
-  updateDistributionCategory(index: number, newCategory: string): void {
-    this.taxConfig.distributionItems[index].category = newCategory;
-    this.saveTaxConfig();
-  }
-
-  updateDistributionDescription(index: number, newDescription: string): void {
-    this.taxConfig.distributionItems[index].description = newDescription;
-    this.saveTaxConfig();
+  getEtfRatePercentage(): number {
+    return this.configService.getEtfRatePercentage();
   }
 
   getTotalDistributionPercentage(): number {
-    return this.taxConfig.distributionItems.reduce((sum, item) => sum + item.percentage, 0);
+    return this.configService.getTotalDistributionPercentage();
   }
 
   isDistributionPercentageValid(): boolean {
-    const total = this.getTotalDistributionPercentage();
-    return total >= 99 && total <= 101; // Allow 1% variance for rounding
+    return this.configService.isDistributionPercentageValid();
   }
 
   normalizeDistributionPercentages(): void {

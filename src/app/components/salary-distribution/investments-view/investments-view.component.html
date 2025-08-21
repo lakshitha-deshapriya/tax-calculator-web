@@ -3,13 +3,9 @@
   <div class="header">
     <h2>Investment Management - {{ selectedFinancialYear.label }}</h2>
     <div class="header-actions">
-      <button 
-        class="btn-secondary" 
-        (click)="toggleConfiguration()"
-        [class.active]="isConfiguring"
-      >
-        {{ isConfiguring ? 'Hide' : 'Configure' }}
-      </button>
+      <div class="config-hint-container">
+        <span class="config-hint">💡 Configure investment categories and methods in Settings</span>
+      </div>
       <button 
         class="btn-primary" 
         (click)="toggleAddInvestment()"
@@ -17,82 +13,6 @@
       >
         Add Investment
       </button>
-    </div>
-  </div>
-
-  <!-- Configuration Panel -->
-  <div class="config-panel" *ngIf="isConfiguring">
-    <h3>Investment Configuration</h3>
-    
-    <!-- Investment Categories Selection -->
-    <div class="config-section">
-      <h4>Select categories to include in investments:</h4>
-      <div class="category-selection">
-        <label *ngFor="let item of taxConfig?.distributionItems" class="category-checkbox">
-          <input 
-            type="checkbox" 
-            [checked]="investmentConfig.targetInvestmentCategories.includes(item.category)"
-            (change)="toggleCategorySelection(item.category)"
-          />
-          <span>{{ item.category }} ({{ item.percentage }}%)</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Investment Methods Configuration -->
-    <div class="config-section">
-      <div class="section-header">
-        <h4>Investment Method Allocation:</h4>
-        <button class="btn-primary btn-small" (click)="addNewMethod()">
-          + Add Method
-        </button>
-      </div>
-      
-      <div class="methods-config">
-        <div class="method-config" *ngFor="let method of investmentConfig.investmentMethods; let i = index">
-          <input 
-            type="text"
-            [(ngModel)]="method.name" 
-            (ngModelChange)="saveInvestmentConfig()"
-            class="method-name-input"
-            placeholder="Method name"
-          />
-          <input 
-            type="number" 
-            [(ngModel)]="method.percentage" 
-            (ngModelChange)="updateMethodPercentage(method.id, method.percentage)"
-            min="0" 
-            max="100"
-            class="percentage-input"
-          />
-          <span>%</span>
-          <input 
-            type="text"
-            [(ngModel)]="method.description" 
-            (ngModelChange)="saveInvestmentConfig()"
-            class="method-description-input"
-            placeholder="Description"
-          />
-          <button 
-            class="btn-danger btn-small" 
-            (click)="removeMethod(method.id)"
-            [disabled]="investmentConfig.investmentMethods.length <= 1"
-            title="Remove method"
-          >
-            ✕
-          </button>
-        </div>
-        
-        <div class="percentage-summary">
-          <strong>Total: {{ getTotalMethodPercentage() }}% 
-            <span *ngIf="!isMethodPercentageValid()" class="error-text">(Must equal 100%)</span>
-          </strong>
-        </div>
-        
-        <div class="percentage-warning" *ngIf="!isMethodPercentageValid()">
-          ⚠️ Total percentage must equal 100%
-        </div>
-      </div>
     </div>
   </div>
 

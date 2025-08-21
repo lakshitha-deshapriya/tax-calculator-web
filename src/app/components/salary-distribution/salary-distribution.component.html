@@ -30,127 +30,13 @@
         </select>
       </div>
       
-      <button 
-        class="btn-configure" 
-        (click)="toggleConfiguration()"
-        [class.active]="isConfiguring"
-      >
-        ⚙️ {{ isConfiguring ? 'Hide' : 'Configure' }} Settings
-      </button>
-    </div>
-  </div>
-
-  <!-- Configuration Panel -->
-  <div class="config-section" *ngIf="isConfiguring">
-    <h3>🔧 Configuration Settings</h3>
-    
-    <!-- EPF/ETF Rates -->
-    <div class="config-rates">
-      <div class="rate-config">
-        <label for="epfRate">EPF Rate (%):</label>
-        <input 
-          type="number" 
-          id="epfRate"
-          [ngModel]="taxConfig.epfRate * 100" 
-          (ngModelChange)="updateEpfRate($event)"
-          class="rate-input"
-          min="0"
-          max="20"
-          step="0.1"
-        >
-      </div>
-      <div class="rate-config">
-        <label for="etfRate">ETF Rate (%):</label>
-        <input 
-          type="number" 
-          id="etfRate"
-          [ngModel]="taxConfig.etfRate * 100" 
-          (ngModelChange)="updateEtfRate($event)"
-          class="rate-input"
-          min="0"
-          max="10"
-          step="0.1"
-        >
-      </div>
-    </div>
-
-    <!-- Distribution Configuration -->
-    <div class="config-distribution">
-      <h4>Net Income Distribution Categories</h4>
-      <div class="distribution-summary">
-        <span class="percentage-total" [class.invalid]="!isDistributionPercentageValid()">
-          Total: {{ getTotalDistributionPercentage() | number:'1.1-1' }}%
-        </span>
-      </div>
-      
-      <div class="distribution-config-table">
-        <div class="config-table-header">
-          <div class="col-category">Category</div>
-          <div class="col-percentage">Percentage (%)</div>
-          <div class="col-description">Description</div>
-          <div class="col-actions">Actions</div>
-        </div>
-        
-        <div 
-          *ngFor="let item of taxConfig.distributionItems; let i = index" 
-          class="config-table-row"
-          [class]="'row-' + getColorClass(i)"
-        >
-          <div class="col-category">
-            <input 
-              type="text" 
-              [(ngModel)]="item.category"
-              (ngModelChange)="updateDistributionCategory(i, $event)"
-              class="category-input"
-            >
-          </div>
-          <div class="col-percentage">
-            <input 
-              type="number" 
-              [(ngModel)]="item.percentage" 
-              (ngModelChange)="updateDistributionPercentage(i, $event)"
-              class="percentage-input"
-              min="0"
-              max="100"
-              step="0.1"
-            >
-          </div>
-          <div class="col-description">
-            <input 
-              type="text" 
-              [(ngModel)]="item.description"
-              (ngModelChange)="updateDistributionDescription(i, $event)"
-              class="description-input"
-              placeholder="Enter description"
-            >
-          </div>
-          <div class="col-actions">
-            <button 
-              class="btn-remove" 
-              (click)="removeDistributionItem(i)"
-              [disabled]="taxConfig.distributionItems.length <= 1"
-              title="Remove category"
-            >
-              🗑️
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="config-actions">
-        <button class="btn-add" (click)="addDistributionItem()">
-          ➕ Add Category
-        </button>
-        <button 
-          class="btn-normalize" 
-          (click)="normalizeDistributionPercentages()"
-          *ngIf="!isDistributionPercentageValid()"
-        >
-          🔧 Normalize to 100%
-        </button>
+      <div class="control-group config-note">
+        <span class="config-hint">💡 Configure EPF/ETF rates and distribution categories in Settings</span>
       </div>
     </div>
   </div>
+
+  <!-- Content Views -->
 
   <!-- No Data Message -->
   <div class="no-data-message" *ngIf="!selectedFinancialYear || monthlyBreakdowns.length === 0">

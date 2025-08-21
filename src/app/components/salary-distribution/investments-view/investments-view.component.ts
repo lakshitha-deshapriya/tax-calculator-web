@@ -4,13 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TaxConfig, FinancialYear, MonthlyBreakdown } from '../../../models/tax-config.model';
 import { SalaryCalculationService } from '../../../services/salary-calculation.service';
 import { TaxConfigService } from '../../../services/tax-config.service';
-
-export interface InvestmentMethod {
-  id: string;
-  name: string;
-  percentage: number; // Percentage allocation of investment amount
-  description: string;
-}
+import { ConfigurationService, InvestmentConfig, InvestmentMethod } from '../../../services/configuration.service';
 
 export interface InvestmentEntry {
   id: string;
@@ -18,11 +12,6 @@ export interface InvestmentEntry {
   amount: number;
   investmentDate: Date;
   description?: string;
-}
-
-export interface InvestmentConfig {
-  investmentMethods: InvestmentMethod[];
-  targetInvestmentCategories: string[]; // Categories from distributionItems to use for investments
 }
 
 export interface MonthlyInvestmentSummary {
@@ -59,7 +48,6 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   investmentEntries: InvestmentEntry[] = [];
   
   // UI state
-  isConfiguring = false;
   showAddInvestment = false;
   
   // New investment form
@@ -70,37 +58,10 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
     description: ''
   };
 
-  // Default investment methods
-  defaultInvestmentMethods: InvestmentMethod[] = [
-    {
-      id: 'fixed-income-fund',
-      name: 'Fixed Income Fund',
-      percentage: 40,
-      description: 'Government bonds, corporate bonds, fixed deposits'
-    },
-    {
-      id: 'equity-fund',
-      name: 'Equity Fund',
-      percentage: 35,
-      description: 'Mutual funds, index funds, equity investments'
-    },
-    {
-      id: 'direct-stocks',
-      name: 'Direct Stock Trading',
-      percentage: 20,
-      description: 'Direct purchases of individual stocks'
-    },
-    {
-      id: 'other',
-      name: 'Other Investments',
-      percentage: 5,
-      description: 'Real estate, commodities, alternative investments'
-    }
-  ];
-
   constructor(
     private salaryCalculationService: SalaryCalculationService,
-    private taxConfigService: TaxConfigService
+    private taxConfigService: TaxConfigService,
+    private configService: ConfigurationService
   ) {}
 
   ngOnInit(): void {
@@ -115,28 +76,11 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
 
   // Configuration Management
   loadInvestmentConfig(): void {
-    const saved = localStorage.getItem('investmentConfig');
-    if (saved) {
-      this.investmentConfig = JSON.parse(saved);
-    } else {
-      this.investmentConfig.investmentMethods = [...this.defaultInvestmentMethods];
-      
-      // Auto-select investment categories
-      if (this.taxConfig?.distributionItems) {
-        const investmentKeywords = ['investment', 'saving', 'discretionary'];
-        this.investmentConfig.targetInvestmentCategories = this.taxConfig.distributionItems
-          .filter(item => investmentKeywords.some(keyword => 
-            item.category.toLowerCase().includes(keyword.toLowerCase())
-          ))
-          .map(item => item.category);
-      }
-      
-      this.saveInvestmentConfig();
-    }
+    this.investmentConfig = this.configService.getInvestmentConfig();
   }
 
   saveInvestmentConfig(): void {
-    localStorage.setItem('investmentConfig', JSON.stringify(this.investmentConfig));
+    this.configService.setInvestmentConfig(this.investmentConfig);
   }
 
   // Investment Entries Management
@@ -246,63 +190,22 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
     this.calculateInvestmentSummaries();
   }
 
-  // Configuration methods
   updateMethodPercentage(methodId: string, percentage: number): void {
-    const method = this.investmentConfig.investmentMethods.find(m => m.id === methodId);
-    if (method) {
-      method.percentage = percentage;
-      this.saveInvestmentConfig();
-      this.calculateInvestmentSummaries();
-    }
-  }
-
-  addNewMethod(): void {
-    const newMethod: InvestmentMethod = {
-      id: this.generateMethodId(),
-      name: 'New Method',
-      percentage: 0,
-      description: 'New investment method'
-    };
-    
-    this.investmentConfig.investmentMethods.push(newMethod);
-    this.saveInvestmentConfig();
-  }
-
-  removeMethod(methodId: string): void {
-    if (this.investmentConfig.investmentMethods.length <= 1) {
-      return; // Don't allow removing the last method
-    }
-    
-    this.investmentConfig.investmentMethods = this.investmentConfig.investmentMethods
-      .filter(method => method.id !== methodId);
-    
-    // Remove any investment entries for this method
-    this.investmentEntries = this.investmentEntries
-      .filter(entry => entry.methodId !== methodId);
-    
-    this.saveInvestmentConfig();
-    this.saveInvestmentEntries();
+    this.configService.updateInvestmentMethod(methodId, { percentage });
+    this.loadInvestmentConfig(); // Refresh local config
     this.calculateInvestmentSummaries();
   }
 
   getTotalMethodPercentage(): number {
-    return this.investmentConfig.investmentMethods
-      .reduce((total, method) => total + (method.percentage || 0), 0);
+    return this.configService.getTotalInvestmentMethodPercentage();
+  }
+
+  isMethodPercentageValid(): boolean {
+    return this.configService.isInvestmentMethodPercentageValid();
   }
 
   private generateMethodId(): string {
     return 'method_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-  }
-
-  toggleCategorySelection(category: string): void {
-    const index = this.investmentConfig.targetInvestmentCategories.indexOf(category);
-    if (index > -1) {
-      this.investmentConfig.targetInvestmentCategories.splice(index, 1);
-    } else {
-      this.investmentConfig.targetInvestmentCategories.push(category);
-    }
-    this.saveInvestmentConfig();
-    this.calculateInvestmentSummaries();
   }
 
   // Utility methods
@@ -361,17 +264,8 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   }
 
   // UI methods
-  toggleConfiguration(): void {
-    this.isConfiguring = !this.isConfiguring;
-  }
-
   toggleAddInvestment(): void {
     this.showAddInvestment = !this.showAddInvestment;
-  }
-
-  isMethodPercentageValid(): boolean {
-    const total = this.investmentConfig.investmentMethods.reduce((sum, method) => sum + method.percentage, 0);
-    return total === 100;
   }
 
   // Template helper methods for status calculation

@@ -24,6 +24,24 @@
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
+}
+
+/* Config Hint */
+.config-hint-container {
+  margin-right: 12px;
+}
+
+.config-hint {
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+  color: #92400e;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  display: inline-block;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
 }
 
 /* Buttons */
