@@ -1,0 +1,346 @@
+/* Tax Configuration Component Styles */
+
+.settings-section {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.section-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.section-header:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  color: #1e293b;
+  margin: 0;
+  font-weight: 600;
+}
+
+.toggle-btn {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  background: #3730a3;
+  transform: scale(1.1);
+}
+
+.section-content {
+  padding: 2rem;
+}
+
+.section-description {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Form Styles */
+.form-container {
+  margin-bottom: 2rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-input {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Tax Brackets Table */
+.brackets-table-container {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.brackets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.brackets-table thead {
+  background-color: #f8f9fa;
+}
+
+.brackets-table th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.brackets-table th:last-child {
+  text-align: center;
+  width: 80px;
+}
+
+.brackets-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.brackets-table tbody tr:hover {
+  background-color: #e8f4f8;
+}
+
+.brackets-table td {
+  padding: 12px 15px;
+  vertical-align: middle;
+}
+
+.bracket-range {
+  font-weight: 500;
+  color: #495057;
+}
+
+.rate-badge {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 45px;
+  text-align: center;
+}
+
+.bracket-description {
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.bracket-actions {
+  text-align: center;
+  width: 80px;
+  padding: 12px 15px !important;
+  vertical-align: middle;
+}
+
+.bracket-actions .delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  margin: 0 auto;
+}
+
+.bracket-actions .delete-button:hover {
+  background-color: #c82333;
+  transform: scale(1.05);
+}
+
+.bracket-actions .delete-button span {
+  display: inline-block;
+  font-weight: bold;
+}
+
+/* Action Buttons */
+.bracket-actions {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
+}
+
+.toggle-button {
+  padding: 10px 20px;
+  border: 1px solid #007bff;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 160px;
+  transition: all 0.2s ease;
+}
+
+.toggle-button:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.reset-button {
+  padding: 10px 20px;
+  border: 1px solid #dc3545;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 140px;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Add Bracket Form */
+.add-bracket-form {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 20px;
+}
+
+.add-bracket-form h4 {
+  color: #495057;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.add-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.add-button:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.add-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.current-brackets h4 {
+  color: #495057;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .section-content {
+    padding: 1.5rem;
+  }
+  
+  .brackets-table-container {
+    overflow-x: auto;
+  }
+  
+  .brackets-table {
+    min-width: 600px;
+  }
+  
+  .brackets-table th,
+  .brackets-table td {
+    padding: 8px 10px;
+  }
+  
+  .bracket-actions {
+    padding: 8px 10px !important;
+    width: 70px;
+  }
+  
+  .bracket-actions .delete-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .rate-badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .toggle-button, .reset-button {
+    padding: 10px 20px;
+    font-size: 13px;
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .bracket-actions {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+}
