@@ -2,11 +2,12 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaxConfig, FinancialYear, SalaryEntry, MonthlyBreakdown } from '../../../models/tax-config.model';
 import { SalaryCalculationService } from '../../../services/salary-calculation.service';
+import { FinancialYearSummaryComponent } from '../../financial-year-summary/financial-year-summary.component';
 
 @Component({
   selector: 'app-net-breakdown',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FinancialYearSummaryComponent],
   templateUrl: './net-breakdown.component.html',
   styleUrls: ['./net-breakdown.component.css']
 })
