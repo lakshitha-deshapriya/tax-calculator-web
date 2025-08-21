@@ -40,3 +40,15 @@ export interface DistributionItem {
   percentage: number;
   description: string;
 }
+
+export interface MonthlyBreakdown {
+  month?: Date; // For display purposes
+  salaryEntry: SalaryEntry;
+  grossSalary: number;
+  taxAmount: number;
+  epfAmount: number;
+  etfAmount: number;
+  totalDeductions: number;
+  netIncome: number;
+  distributionAmounts?: { [category: string]: number };
+}

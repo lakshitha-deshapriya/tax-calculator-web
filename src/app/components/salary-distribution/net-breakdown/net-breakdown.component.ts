@@ -1,17 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TaxConfig, FinancialYear, SalaryEntry } from '../../../models/tax-config.model';
-
-interface MonthlyBreakdown {
-  salaryEntry: SalaryEntry;
-  grossSalary: number;
-  taxAmount: number;
-  epfAmount: number;
-  etfAmount: number;
-  totalDeductions: number;
-  netIncome: number;
-  distributionAmounts: { [category: string]: number };
-}
+import { TaxConfig, FinancialYear, SalaryEntry, MonthlyBreakdown } from '../../../models/tax-config.model';
+import { SalaryCalculationService } from '../../../services/salary-calculation.service';
 
 @Component({
   selector: 'app-net-breakdown',
@@ -25,38 +15,38 @@ export class NetBreakdownComponent {
   @Input() taxConfig!: TaxConfig;
   @Input() selectedFinancialYear!: FinancialYear;
 
+  constructor(private salaryCalculationService: SalaryCalculationService) {}
+
   getTotalGrossSalary(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.grossSalary, 0);
+    return this.salaryCalculationService.getTotalGrossSalary(this.monthlyBreakdowns);
   }
 
   getTotalTaxAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.taxAmount, 0);
+    return this.salaryCalculationService.getTotalTaxAmount(this.monthlyBreakdowns);
   }
 
   getTotalEpfAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.epfAmount, 0);
+    return this.salaryCalculationService.getTotalEpfAmount(this.monthlyBreakdowns);
   }
 
   getTotalEtfAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.etfAmount, 0);
+    return this.salaryCalculationService.getTotalEtfAmount(this.monthlyBreakdowns);
   }
 
   getTotalDeductions(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.totalDeductions, 0);
+    return this.salaryCalculationService.getTotalDeductions(this.monthlyBreakdowns);
   }
 
   getTotalNetIncome(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.netIncome, 0);
+    return this.salaryCalculationService.getTotalNetIncome(this.monthlyBreakdowns);
   }
 
   getUniqueCategories(): string[] {
-    const categories = new Set<string>();
-    this.taxConfig.distributionItems.forEach(item => categories.add(item.category));
-    return Array.from(categories);
+    return this.salaryCalculationService.getUniqueCategories(this.taxConfig);
   }
 
   getCategoryAmountForMonth(breakdown: MonthlyBreakdown, category: string): number {
-    return breakdown.distributionAmounts[category] || 0;
+    return this.salaryCalculationService.getCategoryAmountForMonth(breakdown, category, this.taxConfig);
   }
 
   getCategoryPercentage(category: string): number {
@@ -66,7 +56,7 @@ export class NetBreakdownComponent {
 
   getCategoryTotalForYear(category: string): number {
     return this.monthlyBreakdowns.reduce((total, breakdown) => {
-      return total + (breakdown.distributionAmounts[category] || 0);
+      return total + (breakdown.distributionAmounts?.[category] || 0);
     }, 0);
   }
 

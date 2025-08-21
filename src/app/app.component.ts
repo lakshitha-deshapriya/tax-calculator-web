@@ -11,11 +11,10 @@ import { SalaryManagementComponent } from './components/salary-management/salary
 import { TaxCalculatorComponent } from './components/tax-calculator/tax-calculator.component';
 import { SalaryDistributionComponent } from './components/salary-distribution/salary-distribution.component';
 import { ClickOutsideDirective } from './directives/click-outside.directive';
-import { DebugPanelComponent } from './components/debug-panel/debug-panel.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, ClickOutsideDirective, DebugPanelComponent],
+  imports: [CommonModule, FormsModule, SettingsComponent, SalaryManagementComponent, TaxCalculatorComponent, SalaryDistributionComponent, ClickOutsideDirective],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

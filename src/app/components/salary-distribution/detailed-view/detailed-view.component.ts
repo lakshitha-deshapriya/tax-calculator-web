@@ -1,17 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TaxConfig, FinancialYear, SalaryEntry } from '../../../models/tax-config.model';
-
-interface MonthlyBreakdown {
-  salaryEntry: SalaryEntry;
-  grossSalary: number;
-  taxAmount: number;
-  epfAmount: number;
-  etfAmount: number;
-  totalDeductions: number;
-  netIncome: number;
-  distributionAmounts: { [category: string]: number };
-}
+import { TaxConfig, FinancialYear, SalaryEntry, MonthlyBreakdown } from '../../../models/tax-config.model';
+import { SalaryCalculationService } from '../../../services/salary-calculation.service';
 
 @Component({
   selector: 'app-detailed-view',
@@ -21,32 +11,38 @@ interface MonthlyBreakdown {
   styleUrls: ['./detailed-view.component.css']
 })
 export class DetailedViewComponent {
-  @Input() monthlyBreakdowns: MonthlyBreakdown[] = [];
+    @Input() monthlyBreakdowns: MonthlyBreakdown[] = [];
   @Input() taxConfig!: TaxConfig;
   @Input() selectedFinancialYear!: FinancialYear;
 
+  constructor(private salaryCalculationService: SalaryCalculationService) {}
+
   getTotalGrossSalary(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.grossSalary, 0);
+    return this.salaryCalculationService.getTotalGrossSalary(this.monthlyBreakdowns);
   }
 
   getTotalTaxAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.taxAmount, 0);
+    return this.salaryCalculationService.getTotalTaxAmount(this.monthlyBreakdowns);
   }
 
   getTotalEpfAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.epfAmount, 0);
+    return this.salaryCalculationService.getTotalEpfAmount(this.monthlyBreakdowns);
   }
 
   getTotalEtfAmount(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.etfAmount, 0);
+    return this.salaryCalculationService.getTotalEtfAmount(this.monthlyBreakdowns);
   }
 
   getTotalDeductions(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.totalDeductions, 0);
+    return this.salaryCalculationService.getTotalDeductions(this.monthlyBreakdowns);
   }
 
   getTotalNetIncome(): number {
-    return this.monthlyBreakdowns.reduce((total, breakdown) => total + breakdown.netIncome, 0);
+    return this.salaryCalculationService.getTotalNetIncome(this.monthlyBreakdowns);
+  }
+
+  getCategoryAmountForMonth(breakdown: MonthlyBreakdown, category: string): number {
+    return this.salaryCalculationService.getCategoryAmountForMonth(breakdown, category, this.taxConfig);
   }
 
   getColorClass(index: number): string {

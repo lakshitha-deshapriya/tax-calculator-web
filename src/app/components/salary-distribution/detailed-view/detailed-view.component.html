@@ -110,7 +110,7 @@
             [class]="'item-' + getColorClass(j)"
           >
             <span class="category-name">{{ item.category }}:</span>
-            <span class="category-amount">LKR {{ breakdown.distributionAmounts[item.category] | number:'1.0-0' }}</span>
+            <span class="category-amount">LKR {{ getCategoryAmountForMonth(breakdown, item.category) | number:'1.0-0' }}</span>
             <span class="category-percentage">({{ item.percentage | number:'1.1-1' }}%)</span>
           </div>
         </div>

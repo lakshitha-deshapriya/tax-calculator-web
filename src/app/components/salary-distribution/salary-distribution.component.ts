@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxConfigService } from '../../services/tax-config.service';
-import { TaxConfig, SalaryEntry, FinancialYear, DistributionItem } from '../../models/tax-config.model';
+import { SalaryCalculationService } from '../../services/salary-calculation.service';
+import { TaxConfig, SalaryEntry, FinancialYear, DistributionItem, MonthlyBreakdown } from '../../models/tax-config.model';
 import { NetBreakdownComponent } from './net-breakdown/net-breakdown.component';
 import { DetailedViewComponent } from './detailed-view/detailed-view.component';
 
@@ -28,7 +29,7 @@ export class SalaryDistributionComponent implements OnInit {
   taxConfig!: TaxConfig;
   availableFinancialYears: FinancialYear[] = [];
   selectedFinancialYear!: FinancialYear;
-  monthlyBreakdowns: MonthlyDistributionBreakdown[] = [];
+  monthlyBreakdowns: MonthlyBreakdown[] = [];
   
   // Configuration mode
   isConfiguring = false;
@@ -39,7 +40,10 @@ export class SalaryDistributionComponent implements OnInit {
   // View mode selection
   viewMode: 'breakdown' | 'detailed' = 'breakdown';
 
-  constructor(private taxConfigService: TaxConfigService) { }
+  constructor(
+    private taxConfigService: TaxConfigService,
+    private salaryCalculationService: SalaryCalculationService
+  ) { }
 
   ngOnInit(): void {
     console.log('SalaryDistributionComponent initialized');
@@ -61,7 +65,7 @@ export class SalaryDistributionComponent implements OnInit {
     const financialYears = new Map<string, FinancialYear>();
     
     this.taxConfig.salaryEntries.forEach(entry => {
-      const monthString = this.formatDateToMonthString(entry.taxableMonth);
+      const monthString = this.salaryCalculationService.formatDateToMonthString(entry.taxableMonth);
       const fy = this.taxConfigService.getFinancialYear(monthString);
       financialYears.set(fy.label, fy);
     });
@@ -83,50 +87,20 @@ export class SalaryDistributionComponent implements OnInit {
   }
 
   calculateDistributions(): void {
+    console.log('Calculating distributions for financial year:', this.selectedFinancialYear);
+    
     if (!this.selectedFinancialYear) {
       this.monthlyBreakdowns = [];
       return;
     }
 
     const salaryEntries = this.getSalaryEntriesForSelectedYear();
-    this.monthlyBreakdowns = [];
-
-    salaryEntries.forEach(entry => {
-      const grossSalary = entry.salaryInLKR || 0;
-      if (grossSalary === 0) return;
-
-      // Calculate monthly tax using the same method as tax calculator
-      const taxAmount = this.calculateCorrectMonthlyTax(entry, this.selectedFinancialYear);
-      
-      // Calculate EPF and ETF
-      const epfAmount = grossSalary * this.taxConfig.epfRate;
-      const etfAmount = grossSalary * this.taxConfig.etfRate;
-      
-      // Calculate total deductions and net income
-      const totalDeductions = taxAmount + epfAmount + etfAmount;
-      const netIncome = grossSalary - totalDeductions;
-      
-      // Calculate distribution amounts
-      const distributionAmounts: { [category: string]: number } = {};
-      this.taxConfig.distributionItems.forEach(item => {
-        distributionAmounts[item.category] = (netIncome * item.percentage) / 100;
-      });
-
-      this.monthlyBreakdowns.push({
-        salaryEntry: entry,
-        grossSalary,
-        taxAmount,
-        epfAmount,
-        etfAmount,
-        totalDeductions,
-        netIncome,
-        distributionAmounts
-      });
-    });
-
-    // Sort by taxable month (oldest first - ascending order)
-    this.monthlyBreakdowns.sort((a, b) => 
-      a.salaryEntry.taxableMonth.getTime() - b.salaryEntry.taxableMonth.getTime()
+    
+    // Use the salary calculation service to calculate distributions
+    this.monthlyBreakdowns = this.salaryCalculationService.calculateDistributions(
+      salaryEntries, 
+      this.selectedFinancialYear, 
+      this.taxConfig
     );
   }
 
@@ -135,53 +109,11 @@ export class SalaryDistributionComponent implements OnInit {
     
     return this.taxConfig.salaryEntries
       .filter(entry => {
-        const monthString = this.formatDateToMonthString(entry.taxableMonth);
+        const monthString = this.salaryCalculationService.formatDateToMonthString(entry.taxableMonth);
         const entryFY = this.taxConfigService.getFinancialYear(monthString);
         return entryFY.startYear === this.selectedFinancialYear.startYear;
       })
       .sort((a, b) => new Date(a.taxableMonth).getTime() - new Date(b.taxableMonth).getTime());
-  }
-
-  calculateCorrectMonthlyTax(entry: SalaryEntry, fy: FinancialYear): number {
-    const monthlySalary = entry.salaryInLKR || 0;
-    if (monthlySalary === 0) return 0;
-    
-    // Get cumulative salary up to this month (including this month)
-    const cumulativeSalary = this.getCumulativeSalaryUpToMonth(entry, fy);
-    
-    // Get cumulative salary up to previous month (excluding this month)
-    const previousCumulativeSalary = cumulativeSalary - monthlySalary;
-    
-    // Calculate tax on cumulative salary up to this month
-    const cumulativeTax = this.calculateAnnualTax(cumulativeSalary);
-    
-    // Calculate tax on cumulative salary up to previous month
-    const previousCumulativeTax = this.calculateAnnualTax(previousCumulativeSalary);
-    
-    // Monthly tax is the difference (additional tax due to this month's salary)
-    return cumulativeTax - previousCumulativeTax;
-  }
-
-  getCumulativeSalaryUpToMonth(targetEntry: SalaryEntry, fy: FinancialYear): number {
-    const targetDate = typeof targetEntry.salaryDate === 'string' ? new Date(targetEntry.salaryDate) : targetEntry.salaryDate;
-    
-    return this.getSalaryEntriesForSelectedYear()
-      .filter(entry => {
-        const entryDate = typeof entry.salaryDate === 'string' ? new Date(entry.salaryDate) : entry.salaryDate;
-        return entryDate <= targetDate;
-      })
-      .reduce((sum: number, entry: SalaryEntry) => sum + (entry.salaryInLKR || 0), 0);
-  }
-
-  calculateAnnualTax(annualSalary: number): number {
-    return this.taxConfigService.calculateAnnualTax(annualSalary, this.taxConfig.taxBrackets);
-  }
-
-  formatDateToMonthString(date: Date | string): string {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const year = dateObj.getFullYear();
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-    return `${year}-${month}`;
   }
 
   // Configuration methods
@@ -266,54 +198,44 @@ export class SalaryDistributionComponent implements OnInit {
     return colors[index % colors.length];
   }
 
-  // Summary methods
+  // Summary methods - delegated to salary calculation service
   getTotalGrossSalary(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.grossSalary, 0);
+    return this.salaryCalculationService.getTotalGrossSalary(this.monthlyBreakdowns);
   }
 
   getTotalTaxAmount(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.taxAmount, 0);
+    return this.salaryCalculationService.getTotalTaxAmount(this.monthlyBreakdowns);
   }
 
   getTotalEpfAmount(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.epfAmount, 0);
+    return this.salaryCalculationService.getTotalEpfAmount(this.monthlyBreakdowns);
   }
 
   getTotalEtfAmount(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.etfAmount, 0);
+    return this.salaryCalculationService.getTotalEtfAmount(this.monthlyBreakdowns);
   }
 
   getTotalDeductions(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.totalDeductions, 0);
+    return this.salaryCalculationService.getTotalDeductions(this.monthlyBreakdowns);
   }
 
   getTotalNetIncome(): number {
-    return this.monthlyBreakdowns.reduce((sum, breakdown) => sum + breakdown.netIncome, 0);
+    return this.salaryCalculationService.getTotalNetIncome(this.monthlyBreakdowns);
   }
 
   getAverageMonthlyBreakdown() {
-    const count = this.monthlyBreakdowns.length;
-    if (count === 0) return null;
-
-    return {
-      grossSalary: this.getTotalGrossSalary() / count,
-      taxAmount: this.getTotalTaxAmount() / count,
-      epfAmount: this.getTotalEpfAmount() / count,
-      etfAmount: this.getTotalEtfAmount() / count,
-      totalDeductions: this.getTotalDeductions() / count,
-      netIncome: this.getTotalNetIncome() / count
-    };
+    return this.salaryCalculationService.getAverageMonthlyBreakdown(this.monthlyBreakdowns);
   }
 
   getCategoryTotalForYear(category: string): number {
     return this.monthlyBreakdowns.reduce((sum, breakdown) => {
-      return sum + (breakdown.distributionAmounts[category] || 0);
+      return sum + (breakdown.distributionAmounts?.[category] || 0);
     }, 0);
   }
 
   // Net Salary Breakdown table methods
   getUniqueCategories(): string[] {
-    return this.taxConfig.distributionItems.map(item => item.category);
+    return this.salaryCalculationService.getUniqueCategories(this.taxConfig);
   }
 
   formatMonthDisplay(date: Date): string {
@@ -323,8 +245,8 @@ export class SalaryDistributionComponent implements OnInit {
     });
   }
 
-  getCategoryAmountForMonth(breakdown: MonthlyDistributionBreakdown, category: string): number {
-    return breakdown.distributionAmounts[category] || 0;
+  getCategoryAmountForMonth(breakdown: MonthlyBreakdown, category: string): number {
+    return this.salaryCalculationService.getCategoryAmountForMonth(breakdown, category, this.taxConfig);
   }
 
   getCategoryPercentage(category: string): number {
