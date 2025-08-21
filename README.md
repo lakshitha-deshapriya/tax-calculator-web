@@ -32,7 +32,15 @@ An Angular-based web application for calculating income tax based on salary amou
 5. **Data Persistence**
    - All configuration and salary data saved in localStorage
    - Data persists across browser sessions
-   - No server-side storage required
+   - **NEW**: Cloud synchronization with Firebase (optional)
+   - **NEW**: Google Sign-In for cloud backup
+
+6. **Cloud Synchronization (New)**
+   - Sign in with Google to enable cloud sync
+   - Automatic backup of all configurations to Firebase
+   - Sync settings across devices
+   - Manual save/load controls
+   - Local storage as fallback when offline
 
 ### 🔄 Coming Next
 
@@ -50,8 +58,10 @@ An Angular-based web application for calculating income tax based on salary amou
 
 - **Frontend**: Angular 19.1.5
 - **Styling**: Custom CSS with modern design
-- **Data Storage**: Browser localStorage
+- **Data Storage**: Browser localStorage + Firebase Cloud Storage (optional)
+- **Authentication**: Google OAuth 2.0
 - **Exchange Rate API**: CBSL (Central Bank of Sri Lanka)
+- **Cloud Backend**: Firebase Firestore (optional)
 
 ## Getting Started
 
@@ -79,6 +89,24 @@ An Angular-based web application for calculating income tax based on salary amou
 
 4. Open your browser and navigate to `http://localhost:4200/`
 
+### Firebase Cloud Sync Setup (Optional)
+
+To enable cloud synchronization of configurations:
+
+1. **Set up Firebase project** (see [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions):
+   - Create a Firebase project
+   - Enable Firestore Database
+   - Configure authentication
+   - Set up security rules
+
+2. **Configure the application**:
+   - Update `src/app/config/firebase.config.ts` with your Firebase configuration
+   - Set `firebaseEnabled = true`
+
+3. **Configure Google OAuth**:
+   - Update `src/app/config/auth.config.ts` with your Google OAuth client ID
+   - Ensure OAuth client is configured for both Firebase and direct Google sign-in
+
 ### Usage
 
 1. **Configure Default Settings**
@@ -99,12 +127,21 @@ An Angular-based web application for calculating income tax based on salary amou
    - See total annual salary in LKR
    - Tax calculation will be available in future updates
 
+4. **Cloud Sync (Optional)**
+   - Sign in with Google to enable cloud synchronization
+   - Your configurations will automatically sync to the cloud
+   - Use "Settings" → Cloud Sync panel for manual sync controls
+   - Sign in from any device to access your saved configurations
+
 ## Architecture
 
 ### Key Components
 
 - **TaxConfigService**: Manages configuration and localStorage operations
-- **ExchangeRateProductionService**: Handles CBSL API integration
+- **ExchangeRateProductionService**: Handles CBSL API integration  
+- **GoogleAuthService**: Manages Google OAuth authentication
+- **FirebaseService**: Handles cloud synchronization with Firestore
+- **ConfigurationService**: Centralized configuration management with cloud sync
 - **AppComponent**: Main application component with tabbed interface
 
 ### Data Models

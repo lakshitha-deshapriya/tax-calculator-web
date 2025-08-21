@@ -12,6 +12,15 @@
         🔄 Reset All to Default
       </button>
     </div>
+
+    <!-- Cloud Sync Status -->
+    <div class="cloud-sync-status" *ngIf="currentUser && isCloudSyncAvailable()">
+      <div class="sync-info">
+        <span class="sync-icon">{{ getSyncStatusIcon() }}</span>
+        <span class="sync-text">Cloud sync enabled for {{ currentUser.name }}</span>
+        <span class="help-text">Use the "Save to Cloud" buttons in each section to sync your configurations.</span>
+      </div>
+    </div>
   </div>
 
   <!-- Basic Settings Section -->
@@ -56,15 +65,17 @@
         </div>
       </div>
 
-      <div class="info-card">
-        <h3>📊 About Financial Year & Tax Calculation</h3>
-        <ul>
-          <li><strong>Financial Year:</strong> April 1st to March 31st of the next year</li>
-          <li><strong>Exchange Rate:</strong> Uses CBSL buying rate for salary date</li>
-          <li><strong>Taxing Month:</strong> Salary received in a month is taxed in the same month</li>
-          <li><strong>Tax Calculation:</strong> Progressive tax system based on annual salary</li>
-          <li><strong>Data Storage:</strong> All data is saved locally in your browser</li>
-        </ul>
+      <!-- Cloud Sync Button for Basic Settings -->
+      <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
+        <button 
+          class="sync-btn btn-primary" 
+          (click)="saveBasicToCloud()"
+          [disabled]="savingStatus.basic"
+          title="Save basic settings to cloud"
+        >
+          <span *ngIf="!savingStatus.basic">☁️ Save to Cloud</span>
+          <span *ngIf="savingStatus.basic">⏳ Saving...</span>
+        </button>
       </div>
     </div>
   </div>
@@ -110,6 +121,19 @@
             >
           </div>
         </div>
+      </div>
+
+      <!-- Cloud Sync Button for EPF/ETF Settings -->
+      <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
+        <button 
+          class="sync-btn btn-primary" 
+          (click)="saveEPFETFToCloud()"
+          [disabled]="savingStatus.epfEtf"
+          title="Save EPF/ETF settings to cloud"
+        >
+          <span *ngIf="!savingStatus.epfEtf">☁️ Save EPF/ETF to Cloud</span>
+          <span *ngIf="savingStatus.epfEtf">⏳ Saving...</span>
+        </button>
       </div>
 
       <!-- Distribution Configuration -->
@@ -236,6 +260,19 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Cloud Sync Button for Distribution Settings -->
+      <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
+        <button 
+          class="sync-btn btn-primary" 
+          (click)="saveDistributionToCloud()"
+          [disabled]="savingStatus.distribution"
+          title="Save distribution settings to cloud"
+        >
+          <span *ngIf="!savingStatus.distribution">☁️ Save Distribution to Cloud</span>
+          <span *ngIf="savingStatus.distribution">⏳ Saving...</span>
+        </button>
       </div>
     </div>
   </div>
@@ -395,6 +432,19 @@
         <div class="percentage-warning" *ngIf="!isInvestmentMethodPercentageValid()">
           ⚠️ Total percentage must equal 100%
         </div>
+      </div>
+
+      <!-- Cloud Sync Button for Investment Configuration -->
+      <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
+        <button 
+          class="sync-btn btn-primary" 
+          (click)="saveInvestmentToCloud()"
+          [disabled]="savingStatus.investment"
+          title="Save investment configuration to cloud"
+        >
+          <span *ngIf="!savingStatus.investment">☁️ Save Investment to Cloud</span>
+          <span *ngIf="savingStatus.investment">⏳ Saving...</span>
+        </button>
       </div>
     </div>
   </div>

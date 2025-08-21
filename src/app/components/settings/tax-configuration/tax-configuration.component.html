@@ -120,5 +120,18 @@
         </button>
       </div>
     </div>
+
+    <!-- Cloud Sync Button for Tax Configuration -->
+    <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
+      <button 
+        class="sync-btn btn-primary" 
+        (click)="saveTaxToCloud()"
+        [disabled]="savingToCloud"
+        title="Save tax configuration to cloud"
+      >
+        <span *ngIf="!savingToCloud">☁️ Save Tax Config to Cloud</span>
+        <span *ngIf="savingToCloud">⏳ Saving...</span>
+      </button>
+    </div>
   </div>
 </div>

@@ -6,6 +6,8 @@ import { TaxConfigService } from '../../services/tax-config.service';
 import { ConfigurationService, InvestmentConfig, InvestmentMethod } from '../../services/configuration.service';
 import { TaxConfig, DistributionItem } from '../../models/tax-config.model';
 import { TaxConfigurationComponent } from './tax-configuration/tax-configuration.component';
+import { GoogleAuthService, User } from '../../services/google-auth.service';
+import { FirebaseService } from '../../services/firebase.service';
 
 @Component({
   selector: 'app-settings',
@@ -41,10 +43,33 @@ export class SettingsComponent implements OnInit {
   newInvestmentMethod: Partial<InvestmentMethod> = {};
   isAddingInvestmentMethod: boolean = false;
 
+  // Firebase/Cloud sync status
+  currentUser: User | null = null;
+  syncStatus: 'idle' | 'saving' | 'loading' | 'error' = 'idle';
+  lastSyncTime: Date | null = null;
+  showCloudSyncInfo: boolean = false;
+  
+  // Individual section saving status
+  savingStatus: {
+    basic: boolean;
+    tax: boolean;
+    epfEtf: boolean;
+    distribution: boolean;
+    investment: boolean;
+  } = {
+    basic: false,
+    tax: false,
+    epfEtf: false,
+    distribution: false,
+    investment: false
+  };
+
   constructor(
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService,
-    private configService: ConfigurationService
+    private configService: ConfigurationService,
+    private googleAuthService: GoogleAuthService,
+    private firebaseService: FirebaseService
   ) {}
 
   ngOnInit() {
@@ -52,6 +77,25 @@ export class SettingsComponent implements OnInit {
     // Load supported currencies
     this.supportedCurrencies = this.exchangeRateService.getSupportedCurrencies();
     this.loadCurrentConfiguration();
+    
+    // Subscribe to user changes
+    this.googleAuthService.user$.subscribe(user => {
+      this.currentUser = user;
+      if (user && !('isGuest' in user)) {
+        // User is signed in with Google, try to load from Firebase
+        this.loadFromCloudIfAvailable();
+      }
+    });
+    
+    // Subscribe to Firebase sync status
+    this.firebaseService.syncStatus$.subscribe(status => {
+      this.syncStatus = status;
+    });
+    
+    // Subscribe to last sync time
+    this.firebaseService.lastSync$.subscribe(time => {
+      this.lastSyncTime = time;
+    });
   }
 
   /**
@@ -78,6 +122,193 @@ export class SettingsComponent implements OnInit {
   saveTaxConfig(): void {
     this.taxConfigService.saveTaxConfig(this.taxConfig);
     console.log('Tax configuration saved');
+    // Configurations are automatically synced to Firebase via ConfigurationService
+  }
+
+  // ========================================
+  // FIREBASE/CLOUD SYNC METHODS
+  // ========================================
+
+  /**
+   * Load configuration from Firebase if user is signed in
+   */
+  async loadFromCloudIfAvailable(): Promise<void> {
+    try {
+      const loaded = await this.configService.loadFromFirebaseIfSignedIn();
+      if (loaded) {
+        // Refresh local configuration display
+        this.loadCurrentConfiguration();
+        this.configChanged.emit();
+        console.log('Configuration loaded from cloud');
+      }
+    } catch (error) {
+      console.error('Error loading from cloud:', error);
+    }
+  }
+
+  /**
+   * Save basic configuration to Firebase
+   */
+  async saveBasicToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.basic = true;
+      await this.configService.saveBasicConfigurationToFirebase();
+      console.log('Basic configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving basic configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.basic = false;
+    }
+  }
+
+  /**
+   * Save tax configuration to Firebase
+   */
+  async saveTaxToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.tax = true;
+      await this.configService.saveTaxConfigurationToFirebase();
+      console.log('Tax configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving tax configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.tax = false;
+    }
+  }
+
+  /**
+   * Save EPF/ETF configuration to Firebase
+   */
+  async saveEPFETFToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.epfEtf = true;
+      await this.configService.saveEPFETFConfigurationToFirebase();
+      console.log('EPF/ETF configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving EPF/ETF configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.epfEtf = false;
+    }
+  }
+
+  /**
+   * Save distribution configuration to Firebase
+   */
+  async saveDistributionToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.distribution = true;
+      await this.configService.saveDistributionConfigurationToFirebase();
+      console.log('Distribution configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving distribution configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.distribution = false;
+    }
+  }
+
+  /**
+   * Save investment configuration to Firebase
+   */
+  async saveInvestmentToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.investment = true;
+      await this.configService.saveInvestmentConfigurationToFirebase();
+      console.log('Investment configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving investment configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.investment = false;
+    }
+  }
+
+  /**
+   * Check if Firebase is available and user is signed in
+   */
+  isCloudSyncAvailable(): boolean {
+    return this.firebaseService.isAvailable();
+  }
+
+  /**
+   * Get current user
+   */
+  getCurrentUser(): User | null {
+    return this.currentUser;
+  }
+
+  /**
+   * Toggle cloud sync info panel
+   */
+  toggleCloudSyncInfo(): void {
+    this.showCloudSyncInfo = !this.showCloudSyncInfo;
+  }
+
+  /**
+   * Get sync status display text
+   */
+  getSyncStatusText(): string {
+    switch (this.syncStatus) {
+      case 'saving':
+        return 'Saving to cloud...';
+      case 'loading':
+        return 'Loading from cloud...';
+      case 'error':
+        return 'Sync error';
+      case 'idle':
+      default:
+        if (this.lastSyncTime) {
+          return `Last synced: ${this.lastSyncTime.toLocaleTimeString()}`;
+        }
+        return 'Ready';
+    }
+  }
+
+  /**
+   * Get sync status icon
+   */
+  getSyncStatusIcon(): string {
+    switch (this.syncStatus) {
+      case 'saving':
+      case 'loading':
+        return '⏳';
+      case 'error':
+        return '❌';
+      case 'idle':
+      default:
+        if (this.isCloudSyncAvailable()) {
+          return '☁️';
+        }
+        return '💾';
+    }
   }
 
   // ========================================

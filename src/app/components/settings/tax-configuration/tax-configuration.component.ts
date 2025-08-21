@@ -2,6 +2,8 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxConfigService } from '../../../services/tax-config.service';
+import { ConfigurationService } from '../../../services/configuration.service';
+import { FirebaseService } from '../../../services/firebase.service';
 import { TaxConfig, TaxBracket } from '../../../models/tax-config.model';
 
 @Component({
@@ -18,8 +20,13 @@ export class TaxConfigurationComponent {
   newTaxBracket: Partial<TaxBracket> = {};
   isEditingBrackets: boolean = false;
   showTaxBrackets: boolean = true;
+  savingToCloud: boolean = false;
 
-  constructor(private taxConfigService: TaxConfigService) {
+  constructor(
+    private taxConfigService: TaxConfigService,
+    private configService: ConfigurationService,
+    private firebaseService: FirebaseService
+  ) {
     this.initNewTaxBracket();
   }
 
@@ -82,6 +89,34 @@ export class TaxConfigurationComponent {
 
   private saveTaxConfig(): void {
     this.taxConfigService.saveTaxConfig(this.taxConfig);
+  }
+
+  /**
+   * Save tax configuration to Firebase
+   */
+  async saveTaxToCloud(): Promise<void> {
+    if (!this.firebaseService.isAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingToCloud = true;
+      await this.configService.saveTaxConfigurationToFirebase();
+      console.log('Tax configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving tax configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingToCloud = false;
+    }
+  }
+
+  /**
+   * Check if Firebase is available and user is signed in
+   */
+  isCloudSyncAvailable(): boolean {
+    return this.firebaseService.isAvailable();
   }
 
   toggleSection(): void {

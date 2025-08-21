@@ -392,6 +392,211 @@
   color: #374151;
 }
 
+/* Cloud Sync Status */
+.cloud-sync-status {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.cloud-sync-status .sync-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cloud-sync-status .sync-icon {
+  font-size: 1.2rem;
+}
+
+.cloud-sync-status .sync-text {
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.cloud-sync-status .help-text {
+  font-size: 0.85rem;
+  color: #374151;
+  margin-left: 0.5rem;
+}
+
+/* Cloud Sync Controls for Individual Sections */
+.cloud-sync-controls {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.sync-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.sync-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sync-btn.btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.sync-btn.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.sync-btn.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.sync-btn.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+/* Cloud Sync Styles */
+.cloud-sync-section {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 12px;
+  margin-top: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sync-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sync-status-bar:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sync-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-weight: 600;
+}
+
+.sync-icon {
+  font-size: 1.2rem;
+}
+
+.sync-text {
+  font-size: 0.95rem;
+}
+
+.user-info {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+.sync-details-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.sync-details-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.sync-details {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.sync-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sync-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sync-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-btn.btn-primary {
+  background: #10b981;
+  color: white;
+}
+
+.sync-btn.btn-primary:hover:not(:disabled) {
+  background: #059669;
+}
+
+.sync-btn.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.sync-btn.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.sync-info-text {
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.sync-info-text p {
+  margin: 0.5rem 0;
+}
+
+.last-sync {
+  font-style: italic;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .settings-container {

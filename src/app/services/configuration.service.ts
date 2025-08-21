@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { TaxConfig, TaxBracket, DistributionItem } from '../models/tax-config.model';
 import { TaxConfigService } from './tax-config.service';
 import { ExchangeRateProductionService } from './exchange-rate-production.service';
+import { FirebaseService } from './firebase.service';
 
 export interface InvestmentMethod {
   id: string;
@@ -31,7 +32,8 @@ export class ConfigurationService {
 
   constructor(
     private taxConfigService: TaxConfigService,
-    private exchangeRateService: ExchangeRateProductionService
+    private exchangeRateService: ExchangeRateProductionService,
+    private firebaseService: FirebaseService
   ) {}
 
   // ========================================
@@ -387,6 +389,117 @@ export class ConfigurationService {
   }
 
   // ========================================
+  // FIREBASE INTEGRATION METHODS
+  // ========================================
+
+  /**
+   * Save basic configuration to Firebase
+   */
+  async saveBasicConfigurationToFirebase(): Promise<void> {
+    const taxConfig = this.getTaxConfig();
+    await this.firebaseService.saveBasicConfiguration(
+      taxConfig.defaultSalaryDate,
+      taxConfig.defaultCurrency
+    );
+  }
+
+  /**
+   * Save tax configuration to Firebase
+   */
+  async saveTaxConfigurationToFirebase(): Promise<void> {
+    const taxBrackets = this.getTaxBrackets();
+    await this.firebaseService.saveTaxConfiguration(taxBrackets);
+  }
+
+  /**
+   * Save EPF/ETF configuration to Firebase
+   */
+  async saveEPFETFConfigurationToFirebase(): Promise<void> {
+    const epfRate = this.getEpfRatePercentage();
+    const etfRate = this.getEtfRatePercentage();
+    await this.firebaseService.saveEPFETFConfiguration(epfRate, etfRate);
+  }
+
+  /**
+   * Save distribution configuration to Firebase
+   */
+  async saveDistributionConfigurationToFirebase(): Promise<void> {
+    const distributionItems = this.getDistributionItems();
+    await this.firebaseService.saveDistributionConfiguration(distributionItems);
+  }
+
+  /**
+   * Save investment configuration to Firebase
+   */
+  async saveInvestmentConfigurationToFirebase(): Promise<void> {
+    const investmentConfig = this.getInvestmentConfig();
+    await this.firebaseService.saveInvestmentConfiguration(investmentConfig);
+  }
+
+  /**
+   * Load all configurations from Firebase if available and user is signed in
+   */
+  async loadFromFirebaseIfSignedIn(): Promise<boolean> {
+    if (!this.firebaseService.isAvailable()) {
+      console.log('Firebase not available or user not signed in - using local configurations');
+      return false;
+    }
+
+    try {
+      const configs = await this.firebaseService.loadAllConfigurations();
+      let hasLoadedAny = false;
+
+      // Apply basic configuration
+      if (configs.basic) {
+        const taxConfig = this.getTaxConfig();
+        taxConfig.defaultSalaryDate = configs.basic.defaultSalaryDate;
+        taxConfig.defaultCurrency = configs.basic.defaultCurrency;
+        this.saveConfiguration(taxConfig);
+        hasLoadedAny = true;
+      }
+
+      // Apply tax configuration
+      if (configs.tax) {
+        this.setTaxBrackets(configs.tax.taxBrackets);
+        hasLoadedAny = true;
+      }
+
+      // Apply EPF/ETF configuration
+      if (configs.epfEtf) {
+        this.setEpfRatePercentage(configs.epfEtf.epfRatePercentage);
+        this.setEtfRatePercentage(configs.epfEtf.etfRatePercentage);
+        hasLoadedAny = true;
+      }
+
+      // Apply distribution configuration
+      if (configs.distribution) {
+        const taxConfig = this.getTaxConfig();
+        taxConfig.distributionItems = configs.distribution.distributionItems;
+        this.saveConfiguration(taxConfig);
+        hasLoadedAny = true;
+      }
+
+      // Apply investment configuration
+      if (configs.investment) {
+        this.setInvestmentConfig({
+          targetInvestmentCategories: configs.investment.targetInvestmentCategories,
+          investmentMethods: configs.investment.investmentMethods
+        });
+        hasLoadedAny = true;
+      }
+
+      if (hasLoadedAny) {
+        console.log('✅ Configurations loaded from Firebase');
+      }
+      
+      return hasLoadedAny;
+    } catch (error) {
+      console.error('❌ Error loading configurations from Firebase:', error);
+      return false;
+    }
+  }
+
+  // ========================================
   // PRIVATE METHODS
   // ========================================
 
@@ -402,5 +515,6 @@ export class ConfigurationService {
    */
   private saveConfiguration(config: TaxConfig): void {
     this.taxConfigService.saveTaxConfig(config);
+    // Note: Firebase sync is now handled manually via individual save buttons
   }
 }
