@@ -168,19 +168,41 @@
     
     <!-- Summary Overview -->
     <div class="summary-overview" *ngIf="monthlyBreakdowns.length > 1">
-      <h4>Financial Year Summary</h4>
-      <div class="summary-cards">
-        <div class="summary-card gross">
-          <h5>Total Gross</h5>
-          <span class="amount">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
-        </div>
-        <div class="summary-card deductions">
-          <h5>Total Deductions</h5>
-          <span class="amount">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
-        </div>
-        <div class="summary-card net">
-          <h5>Total Net</h5>
-          <span class="amount">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+      <div class="financial-year-summary-card">
+        <h4>Financial Year Summary ({{ selectedFinancialYear.label }})</h4>
+        <div class="summary-details">
+          <div class="summary-row">
+            <span class="label">Total Gross Salary:</span>
+            <span class="value gross">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total Tax:</span>
+            <span class="value tax">LKR {{ getTotalTaxAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total EPF ({{ (taxConfig.epfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="value epf">LKR {{ getTotalEpfAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total ETF ({{ (taxConfig.etfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="value etf">LKR {{ getTotalEtfAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row total-row">
+            <span class="label">Total Deductions:</span>
+            <span class="value deductions">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row net-row">
+            <span class="label">Total Net Income:</span>
+            <span class="value net">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Average Monthly Gross:</span>
+            <span class="value">LKR {{ (getTotalGrossSalary() / monthlyBreakdowns.length) | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Average Monthly Net:</span>
+            <span class="value">LKR {{ (getTotalNetIncome() / monthlyBreakdowns.length) | number:'1.0-0' }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -268,19 +290,41 @@
     
     <!-- Summary Overview -->
     <div class="summary-overview" *ngIf="monthlyBreakdowns.length > 1">
-      <h4>Financial Year Summary</h4>
-      <div class="summary-cards">
-        <div class="summary-card gross">
-          <h5>Total Gross</h5>
-          <span class="amount">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
-        </div>
-        <div class="summary-card deductions">
-          <h5>Total Deductions</h5>
-          <span class="amount">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
-        </div>
-        <div class="summary-card net">
-          <h5>Total Net</h5>
-          <span class="amount">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+      <div class="financial-year-summary-card">
+        <h4>Financial Year Summary ({{ selectedFinancialYear.label }})</h4>
+        <div class="summary-details">
+          <div class="summary-row">
+            <span class="label">Total Gross Salary:</span>
+            <span class="value gross">LKR {{ getTotalGrossSalary() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total Tax:</span>
+            <span class="value tax">LKR {{ getTotalTaxAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total EPF ({{ (taxConfig.epfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="value epf">LKR {{ getTotalEpfAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Total ETF ({{ (taxConfig.etfRate * 100) | number:'1.1-1' }}%):</span>
+            <span class="value etf">LKR {{ getTotalEtfAmount() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row total-row">
+            <span class="label">Total Deductions:</span>
+            <span class="value deductions">LKR {{ getTotalDeductions() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row net-row">
+            <span class="label">Total Net Income:</span>
+            <span class="value net">LKR {{ getTotalNetIncome() | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Average Monthly Gross:</span>
+            <span class="value">LKR {{ (getTotalGrossSalary() / monthlyBreakdowns.length) | number:'1.0-0' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Average Monthly Net:</span>
+            <span class="value">LKR {{ (getTotalNetIncome() / monthlyBreakdowns.length) | number:'1.0-0' }}</span>
+          </div>
         </div>
       </div>
     </div>

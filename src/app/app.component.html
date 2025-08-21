@@ -76,7 +76,7 @@
     <!-- Admin only tab -->
     <button 
       *ngIf="isAdmin"
-      class="tab-button admin-tab" 
+      class="tab-button" 
       [class.active]="activeTab === 'distribution'"
       (click)="setActiveTab('distribution')"
       title="Admin Only: Salary Distribution Analysis"
