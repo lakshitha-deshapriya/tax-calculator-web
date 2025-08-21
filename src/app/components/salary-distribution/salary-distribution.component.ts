@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { TaxConfig, SalaryEntry, FinancialYear, DistributionItem } from '../../models/tax-config.model';
+import { NetBreakdownComponent } from './net-breakdown/net-breakdown.component';
+import { DetailedViewComponent } from './detailed-view/detailed-view.component';
 
 interface MonthlyDistributionBreakdown {
   salaryEntry: SalaryEntry;
@@ -18,7 +20,7 @@ interface MonthlyDistributionBreakdown {
 @Component({
   selector: 'app-salary-distribution',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NetBreakdownComponent, DetailedViewComponent],
   templateUrl: './salary-distribution.component.html',
   styleUrls: ['./salary-distribution.component.css']
 })
