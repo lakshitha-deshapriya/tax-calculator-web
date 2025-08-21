@@ -6,6 +6,7 @@ import { SalaryCalculationService } from '../../services/salary-calculation.serv
 import { TaxConfig, SalaryEntry, FinancialYear, DistributionItem, MonthlyBreakdown } from '../../models/tax-config.model';
 import { NetBreakdownComponent } from './net-breakdown/net-breakdown.component';
 import { DetailedViewComponent } from './detailed-view/detailed-view.component';
+import { InvestmentsViewComponent } from './investments-view/investments-view.component';
 
 interface MonthlyDistributionBreakdown {
   salaryEntry: SalaryEntry;
@@ -21,7 +22,7 @@ interface MonthlyDistributionBreakdown {
 @Component({
   selector: 'app-salary-distribution',
   standalone: true,
-  imports: [CommonModule, FormsModule, NetBreakdownComponent, DetailedViewComponent],
+  imports: [CommonModule, FormsModule, NetBreakdownComponent, DetailedViewComponent, InvestmentsViewComponent],
   templateUrl: './salary-distribution.component.html',
   styleUrls: ['./salary-distribution.component.css']
 })
@@ -38,7 +39,7 @@ export class SalaryDistributionComponent implements OnInit {
   isDistributionCollapsed = false;
   
   // View mode selection
-  viewMode: 'breakdown' | 'detailed' = 'breakdown';
+  viewMode: 'breakdown' | 'detailed' | 'investments' = 'breakdown';
 
   constructor(
     private taxConfigService: TaxConfigService,

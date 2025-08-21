@@ -1,0 +1,222 @@
+<div class="investments-container">
+  <!-- Header -->
+  <div class="header">
+    <h2>Investment Management - {{ selectedFinancialYear.label }}</h2>
+    <div class="header-actions">
+      <button 
+        class="btn-secondary" 
+        (click)="toggleConfiguration()"
+        [class.active]="isConfiguring"
+      >
+        {{ isConfiguring ? 'Hide' : 'Configure' }}
+      </button>
+      <button 
+        class="btn-primary" 
+        (click)="toggleAddInvestment()"
+        [disabled]="!selectedFinancialYear || monthlyBreakdowns.length === 0"
+      >
+        Add Investment
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuration Panel -->
+  <div class="config-panel" *ngIf="isConfiguring">
+    <h3>Investment Configuration</h3>
+    
+    <!-- Investment Categories Selection -->
+    <div class="config-section">
+      <h4>Select categories to include in investments:</h4>
+      <div class="category-selection">
+        <label *ngFor="let item of taxConfig?.distributionItems" class="category-checkbox">
+          <input 
+            type="checkbox" 
+            [checked]="investmentConfig.targetInvestmentCategories.includes(item.category)"
+            (change)="toggleCategorySelection(item.category)"
+          />
+          <span>{{ item.category }} ({{ item.percentage }}%)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Investment Methods Configuration -->
+    <div class="config-section">
+      <h4>Investment Method Allocation:</h4>
+      <div class="methods-config">
+        <div class="method-config" *ngFor="let method of investmentConfig.investmentMethods">
+          <label>{{ method.name }}</label>
+          <input 
+            type="number" 
+            [(ngModel)]="method.percentage" 
+            (ngModelChange)="updateMethodPercentage(method.id, method.percentage)"
+            min="0" 
+            max="100"
+            class="percentage-input"
+          />
+          <span>%</span>
+          <small>{{ method.description }}</small>
+        </div>
+        <div class="percentage-warning" *ngIf="!isMethodPercentageValid()">
+          ⚠️ Total percentage must equal 100%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Investment Form -->
+  <div class="add-investment-form" *ngIf="showAddInvestment">
+    <h3>Add New Investment</h3>
+    <form (ngSubmit)="addInvestment()" #investmentForm="ngForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Investment Method</label>
+          <select [(ngModel)]="newInvestment.methodId" name="methodId" required>
+            <option value="">Select method...</option>
+            <option *ngFor="let method of investmentConfig.investmentMethods" [value]="method.id">
+              {{ method.name }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Amount (LKR)</label>
+          <input type="number" [(ngModel)]="newInvestment.amount" name="amount" required min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Investment Date</label>
+          <input type="date" [(ngModel)]="newInvestment.investmentDate" name="investmentDate" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description (Optional)</label>
+        <input type="text" [(ngModel)]="newInvestment.description" name="description" placeholder="Brief description...">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="!investmentForm.valid">Add Investment</button>
+        <button type="button" class="btn-secondary" (click)="toggleAddInvestment()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- No Data Messages -->
+  <div class="no-data" *ngIf="!selectedFinancialYear">
+    <p>Please select a financial year to view investment data.</p>
+  </div>
+
+  <div class="no-data" *ngIf="selectedFinancialYear && monthlyBreakdowns.length === 0">
+    <p>No salary data available for {{ selectedFinancialYear.label }}. Please add salary entries first.</p>
+  </div>
+
+  <div class="no-data" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0 && investmentConfig.targetInvestmentCategories.length === 0">
+    <p>No investment categories selected. Please configure investment settings.</p>
+  </div>
+
+  <!-- Investment Data -->
+  <div class="investment-data" *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0 && investmentConfig.targetInvestmentCategories.length > 0">
+    
+    <!-- Year Summary -->
+    <div class="year-summary">
+      <h3>{{ selectedFinancialYear.label }} Investment Summary</h3>
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-label">Total Investment Target</div>
+          <div class="card-value">{{ getTotalInvestmentTargetForYear() | currency:'LKR':'symbol':'1.2-2' }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-label">Total Invested</div>
+          <div class="card-value invested">{{ getTotalActualInvestmentsForYear() | currency:'LKR':'symbol':'1.2-2' }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-label">Remaining to Invest</div>
+          <div class="card-value remaining">{{ getTotalRemainingToInvestForYear() | currency:'LKR':'symbol':'1.2-2' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investment Methods Summary -->
+    <div class="methods-summary">
+      <h3>Investment Methods Summary</h3>
+      <table class="methods-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Target Amount</th>
+            <th>Actual Invested</th>
+            <th>Remaining</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let method of investmentConfig.investmentMethods">
+            <td>{{ method.name }}</td>
+            <td>{{ getMethodTotalAllocation(method.id) | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ getMethodTotalActual(method.id) | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ getMethodTotalRemaining(method.id) | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill" 
+                  [style.width.%]="getMethodTotalAllocation(method.id) > 0 ? (getMethodTotalActual(method.id) / getMethodTotalAllocation(method.id)) * 100 : 0"
+                ></div>
+              </div>
+              <span class="progress-text">
+                {{ (getMethodTotalAllocation(method.id) > 0 ? ((getMethodTotalActual(method.id) / getMethodTotalAllocation(method.id)) * 100) : 0) | number:'1.2-2' }}%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="monthly-breakdown">
+      <h3>Monthly Investment Breakdown</h3>
+      <table class="monthly-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>EPF</th>
+            <th>ETF</th>
+            <th>Selected Categories</th>
+            <th>Total Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let summary of monthlyInvestmentSummaries">
+            <td>{{ summary.month | date:'MMM yyyy' }}</td>
+            <td>{{ summary.epfAmount | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ summary.etfAmount | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ summary.selectedCategoriesAmount | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ summary.totalInvestmentTarget | currency:'LKR':'symbol':'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Investment History -->
+    <div class="investment-history" *ngIf="investmentEntries.length > 0">
+      <h3>Recent Investments</h3>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Method</th>
+            <th>Amount</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of investmentEntries | slice:0:10">
+            <td>{{ entry.investmentDate | date:'mediumDate' }}</td>
+            <td>{{ getMethodName(entry.methodId) }}</td>
+            <td>{{ entry.amount | currency:'LKR':'symbol':'1.2-2' }}</td>
+            <td>{{ entry.description || '-' }}</td>
+            <td>
+              <button class="btn-danger-small" (click)="deleteInvestment(entry.id)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

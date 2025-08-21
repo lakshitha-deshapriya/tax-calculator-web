@@ -26,6 +26,7 @@
         >
           <option value="breakdown">Net Salary Breakdown</option>
           <option value="detailed">Detailed View</option>
+          <option value="investments">Investments</option>
         </select>
       </div>
       
@@ -174,4 +175,12 @@
     [taxConfig]="taxConfig"
     [selectedFinancialYear]="selectedFinancialYear">
   </app-net-breakdown>
+
+  <!-- Investments View -->
+  <app-investments-view 
+    *ngIf="selectedFinancialYear && monthlyBreakdowns.length > 0 && viewMode === 'investments'"
+    [monthlyBreakdowns]="monthlyBreakdowns"
+    [taxConfig]="taxConfig"
+    [selectedFinancialYear]="selectedFinancialYear">
+  </app-investments-view>
 </div>
