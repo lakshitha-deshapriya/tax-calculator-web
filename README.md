@@ -29,18 +29,20 @@ An Angular-based web application for calculating income tax based on salary amou
    - Historical exchange rate lookup for reference
    - Automatic rate application when adding salary entries
 
-5. **Data Persistence**
-   - All configuration and salary data saved in localStorage
-   - Data persists across browser sessions
-   - **NEW**: Cloud synchronization with Firebase (optional)
-   - **NEW**: Google Sign-In for cloud backup
+5. **Browser-First Data Management**
+   - All data saved to browser localStorage immediately (fast, reliable)
+   - Works fully offline without internet or authentication
+   - Data persists across browser sessions and restarts
+   - All calculations use browser data for maximum speed
 
-6. **Cloud Synchronization (New)**
-   - Sign in with Google to enable cloud sync
-   - Automatic backup of all configurations to Firebase
-   - Sync settings across devices
-   - Manual save/load controls
-   - Local storage as fallback when offline
+6. **Cloud Backup & Synchronization**
+   - **Browser-First Approach**: Local storage is primary, cloud is backup
+   - **Google Sign-In**: Optional authentication for cloud features
+   - **Automatic Sync**: When signed in, data automatically backs up to cloud
+   - **Cross-Device Access**: Signed-in users can access data from any device
+   - **Smart Merging**: Cloud data syncs seamlessly with local data
+   - **Manual Controls**: Backup All / Restore from Cloud buttons
+   - **Error Resilient**: Cloud sync failures don't affect local functionality
 
 ### 🔄 Coming Next
 
@@ -113,34 +115,40 @@ To enable cloud synchronization of configurations:
    - Go to the "Settings" tab
    - Set your preferred default salary date (e.g., 1st, 15th, etc.)
    - Select your default salary currency
+   - All changes save automatically to browser storage
 
 2. **Add Salary Entries**
    - Go to the "Salary Management" tab
    - Select the month for which you want to add salary
    - Enter salary amount and select currency
    - The system will automatically fetch the exchange rate for that date
-   - Click "Add Salary Entry" to save
+   - Click "Add Salary Entry" to save (instantly saved to browser + cloud backup if signed in)
 
 3. **View Tax Summary**
    - Go to the "Tax Calculator" tab
    - View your salary entries grouped by financial year
    - See total annual salary in LKR
-   - Tax calculation will be available in future updates
+   - All calculations use fast browser data
 
-4. **Cloud Sync (Optional)**
-   - Sign in with Google to enable cloud synchronization
-   - Your configurations will automatically sync to the cloud
-   - Use "Settings" → Cloud Sync panel for manual sync controls
-   - Sign in from any device to access your saved configurations
+4. **Cloud Backup (Optional)**
+   - **For Guest Users**: App works fully with browser storage only
+   - **Sign in with Google**: Enables automatic cloud backup
+   - **Auto-Sync**: When signed in, all data automatically backs up to cloud
+   - **Cross-Device**: Access your data from any device when signed in
+   - **Manual Controls**: Use "Backup All to Cloud" / "Restore from Cloud" buttons in Settings
+   - **Data Safety**: Browser data is primary, cloud is backup for reliability
 
 ## Architecture
 
 ### Key Components
 
+### Key Components
+
 - **TaxConfigService**: Manages configuration and localStorage operations
+- **DataSyncService**: Browser-first data management with cloud backup orchestration
 - **ExchangeRateProductionService**: Handles CBSL API integration  
 - **GoogleAuthService**: Manages Google OAuth authentication
-- **FirebaseService**: Handles cloud synchronization with Firestore
+- **FirebaseService**: Handles cloud synchronization with Firestore (including salary data)
 - **ConfigurationService**: Centralized configuration management with cloud sync
 - **AppComponent**: Main application component with tabbed interface
 
@@ -159,11 +167,12 @@ The application follows Sri Lankan financial year conventions:
 
 ### Data Flow
 
-1. User configures default settings (saved to localStorage)
+1. User configures default settings (saved instantly to browser localStorage)
 2. User adds salary entry for a specific month
 3. System fetches exchange rate from CBSL for the salary date
-4. Salary is converted to LKR and stored
-5. Data is grouped by financial year for tax calculation
+4. Salary is converted to LKR and stored in browser + cloud backup (if signed in)
+5. Data is grouped by financial year for tax calculation (uses browser data for speed)
+6. When user signs in: cloud data is loaded and merged with browser data
 
 ## API Integration
 

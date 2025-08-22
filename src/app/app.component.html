@@ -68,6 +68,17 @@
       </button>
     </div>
 
+    <!-- Cloud Sync Loading Indicator -->
+    <div *ngIf="isLoadingFromCloud" class="cloud-sync-loading">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">
+          <h3>🔄 Syncing from Cloud</h3>
+          <p>Loading your data from cloud storage...</p>
+        </div>
+      </div>
+    </div>
+
     <main class="main-content">
 
       <!-- Settings Tab -->

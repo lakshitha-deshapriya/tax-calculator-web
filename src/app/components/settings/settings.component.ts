@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ExchangeRateProductionService as ExchangeRateService } from '../../services/exchange-rate-production.service';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { ConfigurationService, InvestmentConfig, InvestmentMethod } from '../../services/configuration.service';
+import { DataSyncService } from '../../services/data-sync.service';
 import { TaxConfig, DistributionItem } from '../../models/tax-config.model';
 import { TaxConfigurationComponent } from './tax-configuration/tax-configuration.component';
 import { GoogleAuthService, User } from '../../services/google-auth.service';
@@ -69,7 +70,8 @@ export class SettingsComponent implements OnInit {
     private taxConfigService: TaxConfigService,
     private configService: ConfigurationService,
     private googleAuthService: GoogleAuthService,
-    private firebaseService: FirebaseService
+    private firebaseService: FirebaseService,
+    private dataSyncService: DataSyncService
   ) {}
 
   ngOnInit() {
@@ -249,6 +251,90 @@ export class SettingsComponent implements OnInit {
       alert('Failed to save to cloud. Please try again.');
     } finally {
       this.savingStatus.investment = false;
+    }
+  }
+
+  /**
+   * Sync all data to cloud (comprehensive backup)
+   */
+  async syncAllToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to sync to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus = {
+        basic: true,
+        tax: true,
+        epfEtf: true,
+        distribution: true,
+        investment: true
+      };
+
+      await this.dataSyncService.syncConfigurationToCloud(this.taxConfig);
+      console.log('✅ All data synced to cloud');
+      alert('All data synced to cloud successfully!');
+      
+    } catch (error) {
+      console.error('❌ Failed to sync all data to cloud:', error);
+      alert('Failed to sync to cloud. Please try again.');
+    } finally {
+      this.savingStatus = {
+        basic: false,
+        tax: false,
+        epfEtf: false,
+        distribution: false,
+        investment: false
+      };
+    }
+  }
+
+  /**
+   * Load all data from cloud
+   */
+  async loadAllFromCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to load from cloud');
+      return;
+    }
+
+    if (!confirm('This will overwrite your current settings with data from cloud. Continue?')) {
+      return;
+    }
+
+    try {
+      this.savingStatus = {
+        basic: true,
+        tax: true,
+        epfEtf: true,
+        distribution: true,
+        investment: true
+      };
+
+      const mergedConfig = await this.dataSyncService.syncFromCloudToLocal();
+      if (mergedConfig) {
+        // Update the taxConfig to reflect the merged data
+        this.taxConfig = mergedConfig;
+        this.loadCurrentConfiguration();
+        this.configChanged.emit();
+        console.log('✅ All data loaded from cloud');
+        alert('Data loaded from cloud successfully!');
+      } else {
+        alert('No data found in cloud');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to load data from cloud:', error);
+      alert('Failed to load from cloud. Please try again.');
+    } finally {
+      this.savingStatus = {
+        basic: false,
+        tax: false,
+        epfEtf: false,
+        distribution: false,
+        investment: false
+      };
     }
   }
 

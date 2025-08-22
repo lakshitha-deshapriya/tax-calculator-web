@@ -18,7 +18,40 @@
       <div class="sync-info">
         <span class="sync-icon">{{ getSyncStatusIcon() }}</span>
         <span class="sync-text">Cloud sync enabled for {{ currentUser.name }}</span>
-        <span class="help-text">Use the "Save to Cloud" buttons in each section to sync your configurations.</span>
+        <span class="help-text">Data loads automatically from cloud on sign-in and backs up continuously.</span>
+      </div>
+      
+      <!-- Comprehensive Sync Controls -->
+      <div class="comprehensive-sync-controls">
+        <h4>📡 Data Synchronization</h4>
+        <div class="sync-buttons-row">
+          <button 
+            class="sync-btn backup-btn"
+            (click)="syncAllToCloud()"
+            [disabled]="savingStatus.basic || savingStatus.tax || savingStatus.epfEtf || savingStatus.distribution || savingStatus.investment"
+            title="Backup all your configurations and salary data to cloud"
+          >
+            <span class="btn-icon">☁️</span>
+            <span *ngIf="!savingStatus.basic">Backup All to Cloud</span>
+            <span *ngIf="savingStatus.basic">Backing up...</span>
+          </button>
+          
+          <button 
+            class="sync-btn restore-btn"
+            (click)="loadAllFromCloud()"
+            [disabled]="savingStatus.basic || savingStatus.tax || savingStatus.epfEtf || savingStatus.distribution || savingStatus.investment"
+            title="Restore all your configurations and salary data from cloud"
+          >
+            <span class="btn-icon">📥</span>
+            <span *ngIf="!savingStatus.basic">Restore from Cloud</span>
+            <span *ngIf="savingStatus.basic">Restoring...</span>
+          </button>
+        </div>
+        <p class="sync-help-text">
+          <strong>Auto-Sync:</strong> Data loads automatically on sign-in • 
+          <strong>Manual Backup:</strong> Force save all data to cloud • 
+          <strong>Manual Restore:</strong> Force reload from cloud
+        </p>
       </div>
     </div>
   </div>

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ExchangeRateProductionService as ExchangeRateService } from './services/exchange-rate-production.service';
 import { TaxConfigService } from './services/tax-config.service';
+import { DataSyncService } from './services/data-sync.service';
 import { GoogleAuthService, User } from './services/google-auth.service';
 import { TaxConfig } from './models/tax-config.model';
 import { SettingsComponent } from './components/settings/settings.component';
@@ -33,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   isGuestUser = false;
   showInitialLogin = true;
   showProfileDropdown = false;
+  isLoadingFromCloud = false;
   private userSubscription?: Subscription;
   private buttonRenderAttempts = 0;
   private readonly maxButtonRenderAttempts = 10;
@@ -43,6 +45,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService,
+    private dataSyncService: DataSyncService,
     private googleAuthService: GoogleAuthService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
@@ -75,6 +78,15 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       // Hide login screen when user signs in or continues as guest
       if (user) {
         this.showInitialLogin = false;
+        
+        // Auto-sync data from cloud when user signs in (but not for guest users)
+        if (!('isGuest' in user)) {
+          console.log('User signed in - initiating comprehensive cloud sync...');
+          // Small delay to ensure Firebase is fully initialized
+          setTimeout(() => {
+            this.performAutoSyncOnSignIn();
+          }, 1000);
+        }
       }
       
       console.log('User info:', {
@@ -326,5 +338,63 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       return 'Signed in with Google (Online Storage)';
     }
     return '';
+  }
+
+  /**
+   * Perform comprehensive auto-sync when user signs in
+   */
+  private async performAutoSyncOnSignIn(): Promise<void> {
+    try {
+      console.log('🔄 Starting automatic cloud sync...');
+      
+      // Show loading state
+      this.isLoadingFromCloud = true;
+      this.cdr.detectChanges();
+      
+      // Disable the DataSyncService auto-sync temporarily to avoid conflicts
+      this.dataSyncService.setAutoSyncEnabled(false);
+      
+      // Perform comprehensive sync
+      const mergedConfig = await this.dataSyncService.syncFromCloudToLocal();
+      
+      if (mergedConfig) {
+        // Update the app's tax config
+        this.taxConfig = mergedConfig;
+        
+        // Force change detection to update child components
+        this.cdr.detectChanges();
+        
+        // Emit configuration changed to all child components
+        this.onConfigChanged();
+        
+        console.log('✅ Automatic cloud sync completed successfully');
+        console.log('📊 Updated data:', {
+          salaryEntries: mergedConfig.salaryEntries.length,
+          distributionItems: mergedConfig.distributionItems.length,
+          defaultCurrency: mergedConfig.defaultCurrency,
+          defaultSalaryDate: mergedConfig.defaultSalaryDate
+        });
+        
+        // Show success message briefly
+        setTimeout(() => {
+          console.log('🎉 Your data has been synced from the cloud!');
+        }, 500);
+        
+      } else {
+        console.log('📱 No cloud data found, continuing with local data');
+      }
+      
+      // Re-enable auto-sync for future changes
+      this.dataSyncService.setAutoSyncEnabled(true);
+      
+    } catch (error) {
+      console.error('❌ Automatic cloud sync failed:', error);
+      // Re-enable auto-sync even on failure
+      this.dataSyncService.setAutoSyncEnabled(true);
+    } finally {
+      // Hide loading state
+      this.isLoadingFromCloud = false;
+      this.cdr.detectChanges();
+    }
   }
 }

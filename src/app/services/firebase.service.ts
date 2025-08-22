@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { firebaseConfig, firebaseEnabled } from '../config/firebase.config';
-import { TaxConfig, TaxBracket, DistributionItem } from '../models/tax-config.model';
+import { TaxConfig, TaxBracket, DistributionItem, SalaryEntry } from '../models/tax-config.model';
 import { InvestmentConfig } from './configuration.service';
 import { GoogleAuthService, User } from './google-auth.service';
 
@@ -41,6 +41,11 @@ export interface DistributionConfiguration {
 }
 
 export interface InvestmentConfiguration extends InvestmentConfig {
+  lastUpdated: Date;
+}
+
+export interface SalaryData {
+  salaryEntries: SalaryEntry[];
   lastUpdated: Date;
 }
 
@@ -466,11 +471,85 @@ export class FirebaseService {
   }
 
   // ========================================
+  // SALARY DATA METHODS
+  // ========================================
+
+  /**
+   * Save salary entries
+   */
+  async saveSalaryData(salaryEntries: SalaryEntry[]): Promise<void> {
+    if (!this.isAvailable() || !this.db || !this.currentUser) {
+      throw new Error('Firebase not available or user not signed in');
+    }
+
+    try {
+      this.syncStatusSubject.next('saving');
+      
+      const salaryData: SalaryData = {
+        salaryEntries,
+        lastUpdated: new Date()
+      };
+
+      const docRef = doc(this.db, 'users', this.currentUser.id, 'data', 'salaries');
+      await setDoc(docRef, salaryData);
+      
+      console.log('✅ Salary data saved to Firebase');
+      this.syncStatusSubject.next('idle');
+      this.lastSyncSubject.next(new Date());
+      
+    } catch (error) {
+      console.error('❌ Error saving salary data:', error);
+      this.syncStatusSubject.next('error');
+      throw error;
+    }
+  }
+
+  /**
+   * Load salary entries
+   */
+  async loadSalaryData(): Promise<SalaryData | null> {
+    if (!this.isAvailable() || !this.db || !this.currentUser) {
+      return null;
+    }
+
+    try {
+      this.syncStatusSubject.next('loading');
+      
+      const docRef = doc(this.db, 'users', this.currentUser.id, 'data', 'salaries');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const salaryData: SalaryData = {
+          salaryEntries: data['salaryEntries'].map((entry: any) => ({
+            ...entry,
+            taxableMonth: entry.taxableMonth.toDate(),
+            salaryDate: entry.salaryDate.toDate()
+          })),
+          lastUpdated: data['lastUpdated'].toDate()
+        };
+        
+        console.log('✅ Salary data loaded from Firebase');
+        this.syncStatusSubject.next('idle');
+        return salaryData;
+      } else {
+        console.log('No salary data found');
+        this.syncStatusSubject.next('idle');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error loading salary data:', error);
+      this.syncStatusSubject.next('error');
+      throw error;
+    }
+  }
+
+  // ========================================
   // BULK OPERATIONS
   // ========================================
 
   /**
-   * Load all configurations at once
+   * Load all configurations and data at once
    */
   async loadAllConfigurations(): Promise<{
     basic: BasicConfiguration | null;
@@ -478,6 +557,7 @@ export class FirebaseService {
     epfEtf: EPFETFConfiguration | null;
     distribution: DistributionConfiguration | null;
     investment: InvestmentConfiguration | null;
+    salaries: SalaryData | null;
   }> {
     if (!this.isAvailable()) {
       return {
@@ -485,20 +565,22 @@ export class FirebaseService {
         tax: null,
         epfEtf: null,
         distribution: null,
-        investment: null
+        investment: null,
+        salaries: null
       };
     }
 
     try {
-      const [basic, tax, epfEtf, distribution, investment] = await Promise.all([
+      const [basic, tax, epfEtf, distribution, investment, salaries] = await Promise.all([
         this.loadBasicConfiguration(),
         this.loadTaxConfiguration(),
         this.loadEPFETFConfiguration(),
         this.loadDistributionConfiguration(),
-        this.loadInvestmentConfiguration()
+        this.loadInvestmentConfiguration(),
+        this.loadSalaryData()
       ]);
 
-      return { basic, tax, epfEtf, distribution, investment };
+      return { basic, tax, epfEtf, distribution, investment, salaries };
     } catch (error) {
       console.error('❌ Error loading all configurations:', error);
       return {
@@ -506,7 +588,8 @@ export class FirebaseService {
         tax: null,
         epfEtf: null,
         distribution: null,
-        investment: null
+        investment: null,
+        salaries: null
       };
     }
   }
