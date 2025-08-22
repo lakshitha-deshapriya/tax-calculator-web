@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { ExchangeRateProductionService as ExchangeRateService } from './services/exchange-rate-production.service';
 import { TaxConfigService } from './services/tax-config.service';
 import { DataSyncService } from './services/data-sync.service';
+import { UnifiedStorageService } from './services/unified-storage.service';
 import { GoogleAuthService, User } from './services/google-auth.service';
 import { TaxConfig } from './models/tax-config.model';
 import { SettingsComponent } from './components/settings/settings.component';
@@ -46,21 +47,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService,
     private dataSyncService: DataSyncService,
+    private unifiedStorageService: UnifiedStorageService,
     private googleAuthService: GoogleAuthService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
-    // Load or create default tax config
-    this.taxConfig = this.taxConfigService.loadTaxConfig() || this.taxConfigService.getDefaultTaxConfig();
-    
-    // Ensure tax brackets are always initialized
-    if (!this.taxConfig.taxBrackets || this.taxConfig.taxBrackets.length === 0) {
-      this.taxConfig.taxBrackets = this.taxConfigService.getDefaultTaxBrackets();
-    }
+    // Initialize with empty config - will be loaded in ngOnInit based on user status
+    this.taxConfig = this.getEmptyTaxConfig();
   }
 
   ngOnInit() {
     console.log('AppComponent initialized');
+    
+    // Initialize tax config based on user status
+    this.initializeTaxConfig();
     
     // Check if we should show initial login
     this.showInitialLogin = this.googleAuthService.shouldShowInitialLogin();
@@ -78,6 +78,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       // Hide login screen when user signs in or continues as guest
       if (user) {
         this.showInitialLogin = false;
+        
+        // Reload tax config with new storage strategy
+        this.initializeTaxConfig();
         
         // Auto-sync data from cloud when user signs in (but not for guest users)
         if (!('isGuest' in user)) {
@@ -341,6 +344,39 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Get empty tax config for initialization
+   */
+  private getEmptyTaxConfig(): TaxConfig {
+    return {
+      defaultSalaryDate: '01',
+      defaultCurrency: 'USD',
+      salaryEntries: [],
+      taxBrackets: [],
+      epfRate: 0.08,
+      etfRate: 0.03,
+      distributionItems: []
+    };
+  }
+
+  /**
+   * Initialize tax config using unified storage service
+   */
+  private async initializeTaxConfig(): Promise<void> {
+    try {
+      console.log('🔄 Initializing tax config with unified storage...');
+      const config = await this.unifiedStorageService.loadTaxConfig();
+      if (config) {
+        this.taxConfig = config;
+        this.cdr.detectChanges();
+        console.log('✅ Tax config loaded via unified storage');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize tax config:', error);
+      // Keep the empty config as fallback
+    }
+  }
+
+  /**
    * Perform comprehensive auto-sync when user signs in
    */
   private async performAutoSyncOnSignIn(): Promise<void> {
@@ -351,11 +387,11 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       this.isLoadingFromCloud = true;
       this.cdr.detectChanges();
       
-      // Disable the DataSyncService auto-sync temporarily to avoid conflicts
-      this.dataSyncService.setAutoSyncEnabled(false);
+      // Clear session storage to force fresh load from cloud
+      this.unifiedStorageService.clearSessionStorage();
       
-      // Perform comprehensive sync
-      const mergedConfig = await this.dataSyncService.syncFromCloudToLocal();
+      // Load fresh data from cloud using unified storage
+      const mergedConfig = await this.unifiedStorageService.forceReloadFromCloud();
       
       if (mergedConfig) {
         // Update the app's tax config
@@ -372,7 +408,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           salaryEntries: mergedConfig.salaryEntries.length,
           distributionItems: mergedConfig.distributionItems.length,
           defaultCurrency: mergedConfig.defaultCurrency,
-          defaultSalaryDate: mergedConfig.defaultSalaryDate
+          defaultSalaryDate: mergedConfig.defaultSalaryDate,
+          storageMode: this.unifiedStorageService.getStorageMode()
         });
         
         // Show success message briefly
@@ -381,16 +418,11 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
         }, 500);
         
       } else {
-        console.log('📱 No cloud data found, continuing with local data');
+        console.log('📱 No cloud data found, continuing with defaults');
       }
-      
-      // Re-enable auto-sync for future changes
-      this.dataSyncService.setAutoSyncEnabled(true);
       
     } catch (error) {
       console.error('❌ Automatic cloud sync failed:', error);
-      // Re-enable auto-sync even on failure
-      this.dataSyncService.setAutoSyncEnabled(true);
     } finally {
       // Hide loading state
       this.isLoadingFromCloud = false;

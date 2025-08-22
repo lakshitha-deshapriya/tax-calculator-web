@@ -175,8 +175,8 @@ export class DataSyncService {
 
     // Merge EPF/ETF configuration
     if (cloudData.epfEtf) {
-      mergedConfig.epfRate = cloudData.epfEtf.epfRatePercentage;
-      mergedConfig.etfRate = cloudData.epfEtf.etfRatePercentage;
+      mergedConfig.epfRate = cloudData.epfEtf.epfRatePercentage / 100; // Convert percentage to decimal
+      mergedConfig.etfRate = cloudData.epfEtf.etfRatePercentage / 100; // Convert percentage to decimal
     }
 
     // Merge distribution configuration

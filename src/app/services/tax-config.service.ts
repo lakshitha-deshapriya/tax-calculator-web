@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket, DistributionItem } from '../models/tax-config.model';
+import { GoogleAuthService } from './google-auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -7,23 +8,45 @@ import { TaxConfig, SalaryEntry, FinancialYear, TaxBracket, DistributionItem } f
 export class TaxConfigService {
   private readonly STORAGE_KEY = 'tax-calculator-config';
 
-  constructor() {}
+  constructor(private googleAuthService: GoogleAuthService) {}
 
   /**
-   * Save tax configuration to localStorage
+   * Determine which storage to use based on user sign-in status
    */
-  saveTaxConfig(config: TaxConfig): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+  private getStorage(): Storage {
+    const user = this.googleAuthService.getCurrentUser();
+    // Use sessionStorage for signed-in users (better mobile compatibility)
+    // Use localStorage for guest users (persistence across sessions)
+    if (user && !('isGuest' in user)) {
+      return sessionStorage;
+    }
+    return localStorage;
   }
 
   /**
-   * Load tax configuration from localStorage
+   * Save tax configuration to appropriate storage based on user status
+   */
+  saveTaxConfig(config: TaxConfig): void {
+    const storage = this.getStorage();
+    storage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+    
+    const storageType = storage === sessionStorage ? 'sessionStorage' : 'localStorage';
+    console.log(`💾 Tax config saved to ${storageType}`);
+  }
+
+  /**
+   * Load tax configuration from appropriate storage based on user status
    */
   loadTaxConfig(): TaxConfig | null {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
+    const storage = this.getStorage();
+    const stored = storage.getItem(this.STORAGE_KEY);
+    const storageType = storage === sessionStorage ? 'sessionStorage' : 'localStorage';
+    
     if (stored) {
       try {
         const config = JSON.parse(stored);
+        console.log(`📂 Tax config loaded from ${storageType}`);
+        
         // Ensure tax brackets are always present
         if (!config.taxBrackets || config.taxBrackets.length === 0) {
           config.taxBrackets = this.getDefaultTaxBrackets();

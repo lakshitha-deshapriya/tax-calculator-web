@@ -5,6 +5,7 @@ import { ExchangeRateProductionService as ExchangeRateService } from '../../serv
 import { TaxConfigService } from '../../services/tax-config.service';
 import { ConfigurationService, InvestmentConfig, InvestmentMethod } from '../../services/configuration.service';
 import { DataSyncService } from '../../services/data-sync.service';
+import { UnifiedStorageService } from '../../services/unified-storage.service';
 import { TaxConfig, DistributionItem } from '../../models/tax-config.model';
 import { TaxConfigurationComponent } from './tax-configuration/tax-configuration.component';
 import { GoogleAuthService, User } from '../../services/google-auth.service';
@@ -71,22 +72,22 @@ export class SettingsComponent implements OnInit {
     private configService: ConfigurationService,
     private googleAuthService: GoogleAuthService,
     private firebaseService: FirebaseService,
-    private dataSyncService: DataSyncService
+    private dataSyncService: DataSyncService,
+    private unifiedStorageService: UnifiedStorageService
   ) {}
 
-  ngOnInit() {
+  async ngOnInit(): Promise<void> {
     console.log('SettingsComponent initialized');
     // Load supported currencies
     this.supportedCurrencies = this.exchangeRateService.getSupportedCurrencies();
-    this.loadCurrentConfiguration();
+    await this.loadCurrentConfiguration();
     
     // Subscribe to user changes
     this.googleAuthService.user$.subscribe(user => {
       this.currentUser = user;
-      if (user && !('isGuest' in user)) {
-        // User is signed in with Google, try to load from Firebase
-        this.loadFromCloudIfAvailable();
-      }
+      // Note: We don't call loadFromCloudIfAvailable() anymore
+      // The UnifiedStorageService handles caching and will load from session/cloud as needed
+      // Data loading happens in loadCurrentConfiguration() which uses UnifiedStorageService
     });
     
     // Subscribe to Firebase sync status
@@ -103,12 +104,20 @@ export class SettingsComponent implements OnInit {
   /**
    * Load current configuration values
    */
-  loadCurrentConfiguration(): void {
-    // Load EPF/ETF rates
-    this.epfRatePercentage = this.configService.getEpfRatePercentage();
-    this.etfRatePercentage = this.configService.getEtfRatePercentage();
+  async loadCurrentConfiguration(): Promise<void> {
+    // Load tax config from unified storage to get EPF/ETF rates
+    const taxConfig = await this.unifiedStorageService.loadTaxConfig();
+    if (taxConfig) {
+      this.epfRatePercentage = (taxConfig.epfRate || 0.08) * 100; // Convert decimal to percentage
+      this.etfRatePercentage = (taxConfig.etfRate || 0.03) * 100; // Convert decimal to percentage
+    } else {
+      // Fallback to default values
+      this.epfRatePercentage = 8;
+      this.etfRatePercentage = 3;
+    }
     
-    // Load investment configuration
+    // Load investment configuration - this still uses ConfigurationService for now
+    // TODO: Move investment config to unified storage in future
     this.investmentConfig = this.configService.getInvestmentConfig();
     
     // Initialize new distribution item
@@ -121,10 +130,14 @@ export class SettingsComponent implements OnInit {
     this.configChanged.emit();
   }
 
-  saveTaxConfig(): void {
-    this.taxConfigService.saveTaxConfig(this.taxConfig);
-    console.log('Tax configuration saved');
-    // Configurations are automatically synced to Firebase via ConfigurationService
+  async saveTaxConfig(): Promise<void> {
+    try {
+      await this.unifiedStorageService.saveTaxConfig(this.taxConfig);
+      const storageMode = this.unifiedStorageService.getStorageMode();
+      console.log(`Tax configuration saved via ${storageMode}`);
+    } catch (error) {
+      console.error('Failed to save tax configuration:', error);
+    }
   }
 
   // ========================================
@@ -272,8 +285,9 @@ export class SettingsComponent implements OnInit {
         investment: true
       };
 
-      await this.dataSyncService.syncConfigurationToCloud(this.taxConfig);
-      console.log('✅ All data synced to cloud');
+      // Force save current config using unified storage (will save to cloud)
+      await this.unifiedStorageService.saveTaxConfig(this.taxConfig);
+      console.log('✅ All data synced to cloud via unified storage');
       alert('All data synced to cloud successfully!');
       
     } catch (error) {
@@ -312,13 +326,14 @@ export class SettingsComponent implements OnInit {
         investment: true
       };
 
-      const mergedConfig = await this.dataSyncService.syncFromCloudToLocal();
+      // Force reload from cloud using unified storage
+      const mergedConfig = await this.unifiedStorageService.forceReloadFromCloud();
       if (mergedConfig) {
         // Update the taxConfig to reflect the merged data
         this.taxConfig = mergedConfig;
         this.loadCurrentConfiguration();
         this.configChanged.emit();
-        console.log('✅ All data loaded from cloud');
+        console.log('✅ All data loaded from cloud via unified storage');
         alert('Data loaded from cloud successfully!');
       } else {
         alert('No data found in cloud');

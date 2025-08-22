@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { UnifiedStorageService } from '../../services/unified-storage.service';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { SalaryCalculationService } from '../../services/salary-calculation.service';
 import { ConfigurationService } from '../../services/configuration.service';
@@ -37,25 +38,26 @@ export class SalaryDistributionComponent implements OnInit {
   viewMode: 'breakdown' | 'detailed' | 'investments' = 'breakdown';
 
   constructor(
+    private unifiedStorageService: UnifiedStorageService,
     private taxConfigService: TaxConfigService,
     private salaryCalculationService: SalaryCalculationService,
     private configService: ConfigurationService
   ) { }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     console.log('SalaryDistributionComponent initialized');
-    this.loadTaxConfig();
+    await this.loadTaxConfig();
     this.updateAvailableFinancialYears();
     this.calculateDistributions();
   }
 
-  loadTaxConfig(): void {
-    this.taxConfig = this.taxConfigService.loadTaxConfig() || this.taxConfigService.getDefaultTaxConfig();
-    this.taxConfigService.saveTaxConfig(this.taxConfig);
+  async loadTaxConfig(): Promise<void> {
+    const config = await this.unifiedStorageService.loadTaxConfig();
+    this.taxConfig = config || this.taxConfigService.getDefaultTaxConfig();
   }
 
-  saveTaxConfig(): void {
-    this.taxConfigService.saveTaxConfig(this.taxConfig);
+  async saveTaxConfig(): Promise<void> {
+    await this.unifiedStorageService.saveTaxConfig(this.taxConfig);
   }
 
   updateAvailableFinancialYears(): void {

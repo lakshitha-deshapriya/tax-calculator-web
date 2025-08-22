@@ -3,16 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaxConfig, FinancialYear, MonthlyBreakdown } from '../../../models/tax-config.model';
 import { SalaryCalculationService } from '../../../services/salary-calculation.service';
-import { TaxConfigService } from '../../../services/tax-config.service';
+import { UnifiedStorageService, InvestmentEntry } from '../../../services/unified-storage.service';
 import { ConfigurationService, InvestmentConfig, InvestmentMethod } from '../../../services/configuration.service';
-
-export interface InvestmentEntry {
-  id: string;
-  methodId: string;
-  amount: number;
-  investmentDate: Date;
-  description?: string;
-}
 
 export interface MonthlyInvestmentSummary {
   month: Date;
@@ -60,13 +52,13 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
 
   constructor(
     private salaryCalculationService: SalaryCalculationService,
-    private taxConfigService: TaxConfigService,
+    private unifiedStorageService: UnifiedStorageService,
     private configService: ConfigurationService
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.loadInvestmentConfig();
-    this.loadInvestmentEntries();
+    await this.loadInvestmentEntries();
     this.calculateInvestmentSummaries();
   }
 
@@ -76,6 +68,9 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
 
   // Configuration Management
   loadInvestmentConfig(): void {
+    // This still uses ConfigurationService for investment methods and categories
+    // The main tax config data (EPF/ETF, salary entries) comes from parent component
+    // which now uses UnifiedStorageService, so no Firebase calls are made here
     this.investmentConfig = this.configService.getInvestmentConfig();
   }
 
@@ -84,18 +79,22 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   }
 
   // Investment Entries Management
-  loadInvestmentEntries(): void {
-    const saved = localStorage.getItem('investmentEntries');
-    if (saved) {
-      this.investmentEntries = JSON.parse(saved).map((entry: any) => ({
-        ...entry,
-        investmentDate: new Date(entry.investmentDate)
-      }));
+  async loadInvestmentEntries(): Promise<void> {
+    try {
+      const entries = await this.unifiedStorageService.loadInvestmentEntries();
+      this.investmentEntries = entries || [];
+    } catch (error) {
+      console.error('Error loading investment entries:', error);
+      this.investmentEntries = [];
     }
   }
 
-  saveInvestmentEntries(): void {
-    localStorage.setItem('investmentEntries', JSON.stringify(this.investmentEntries));
+  async saveInvestmentEntries(): Promise<void> {
+    try {
+      await this.unifiedStorageService.saveInvestmentEntries(this.investmentEntries);
+    } catch (error) {
+      console.error('Error saving investment entries:', error);
+    }
   }
 
   // Calculate investment summaries
@@ -158,7 +157,7 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   }
 
   // Investment entry management
-  addInvestment(): void {
+  async addInvestment(): Promise<void> {
     if (!this.newInvestment.methodId || this.newInvestment.amount <= 0) {
       return;
     }
@@ -172,7 +171,7 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
     };
 
     this.investmentEntries.push(investment);
-    this.saveInvestmentEntries();
+    await this.saveInvestmentEntries();
     this.calculateInvestmentSummaries();
 
     // Reset form
@@ -185,9 +184,9 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
     this.showAddInvestment = false;
   }
 
-  deleteInvestment(id: string): void {
+  async deleteInvestment(id: string): Promise<void> {
     this.investmentEntries = this.investmentEntries.filter(entry => entry.id !== id);
-    this.saveInvestmentEntries();
+    await this.saveInvestmentEntries();
     this.calculateInvestmentSummaries();
   }
 

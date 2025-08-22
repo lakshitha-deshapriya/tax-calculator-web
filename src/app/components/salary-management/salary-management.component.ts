@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ExchangeRateProductionService as ExchangeRateService, ExchangeRateData } from '../../services/exchange-rate-production.service';
 import { TaxConfigService } from '../../services/tax-config.service';
 import { DataSyncService } from '../../services/data-sync.service';
+import { UnifiedStorageService } from '../../services/unified-storage.service';
 import { TaxConfig, SalaryEntry, FinancialYear } from '../../models/tax-config.model';
 
 @Component({
@@ -28,7 +29,8 @@ export class SalaryManagementComponent implements OnInit {
   constructor(
     private exchangeRateService: ExchangeRateService,
     private taxConfigService: TaxConfigService,
-    private dataSyncService: DataSyncService
+    private dataSyncService: DataSyncService,
+    private unifiedStorageService: UnifiedStorageService
   ) {}
 
   ngOnInit() {
@@ -199,13 +201,14 @@ export class SalaryManagementComponent implements OnInit {
           financialYear: financialYear.label
         };
 
-        // Use DataSyncService to save salary entry (saves to browser first, then syncs to cloud)
-        this.dataSyncService.saveSalaryEntry(salaryEntry, this.taxConfig).then(() => {
+        // Use UnifiedStorageService to save salary entry (handles cloud/session or localStorage based on user)
+        this.unifiedStorageService.saveSalaryEntry(salaryEntry, this.taxConfig).then(() => {
           this.updateAvailableMonths(); // Update available months after adding entry
           this.initNewSalaryEntry();
           this.isAddingSalary = false;
           
-          console.log('Salary entry added and synced:', salaryEntry);
+          const storageMode = this.unifiedStorageService.getStorageMode();
+          console.log(`Salary entry added via ${storageMode}:`, salaryEntry);
         }).catch(error => {
           console.error('Error saving salary entry:', error);
           this.isAddingSalary = false;
@@ -223,11 +226,13 @@ export class SalaryManagementComponent implements OnInit {
     if (confirm('Are you sure you want to delete this salary entry?')) {
       const updatedSalaries = this.taxConfig.salaryEntries.filter(entry => entry.id !== entryId);
       
-      // Use DataSyncService to update salary entries (saves to browser first, then syncs to cloud)
-      this.dataSyncService.updateSalaryEntries(updatedSalaries, this.taxConfig).then(() => {
+      // Use UnifiedStorageService to update salary entries (handles cloud/session or localStorage based on user)
+      this.unifiedStorageService.updateSalaryEntries(updatedSalaries, this.taxConfig).then(() => {
         this.updateAvailableMonths(); // Update available months after deleting entry
         this.initNewSalaryEntry(); // Reinitialize to pick up newly available months
-        console.log('Salary entry deleted and synced');
+        
+        const storageMode = this.unifiedStorageService.getStorageMode();
+        console.log(`Salary entry deleted via ${storageMode}`);
       }).catch(error => {
         console.error('Error deleting salary entry:', error);
       });

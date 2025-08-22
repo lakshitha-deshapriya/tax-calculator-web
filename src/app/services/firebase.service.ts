@@ -632,4 +632,68 @@ export class FirebaseService {
   getLastSyncTime(): Date | null {
     return this.lastSyncSubject.value;
   }
+
+  // Investment Entries Management
+  /**
+   * Save investment entries for a user
+   */
+  async saveInvestmentEntries(userId: string, entries: any[]): Promise<void> {
+    if (!firebaseEnabled || !this.db) {
+      throw new Error('Firebase is not enabled or not initialized');
+    }
+
+    this.syncStatusSubject.next('saving');
+
+    try {
+      const docRef = doc(this.db, `users/${userId}/data/investmentEntries`);
+      await setDoc(docRef, {
+        entries: entries,
+        lastUpdated: new Date()
+      });
+
+      console.log('Investment entries saved successfully to Firebase');
+    } catch (error) {
+      this.syncStatusSubject.next('error');
+      console.error('Error saving investment entries to Firebase:', error);
+      throw error;
+    } finally {
+      if (this.syncStatusSubject.value !== 'error') {
+        this.syncStatusSubject.next('idle');
+      }
+    }
+  }
+
+  /**
+   * Load investment entries for a user
+   */
+  async loadInvestmentEntries(userId: string): Promise<any[] | null> {
+    if (!firebaseEnabled || !this.db) {
+      console.log('Firebase is not enabled or not initialized');
+      return null;
+    }
+
+    this.syncStatusSubject.next('loading');
+
+    try {
+      const docRef = doc(this.db, `users/${userId}/data/investmentEntries`);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log('Investment entries loaded successfully from Firebase');
+        return data['entries'] || [];
+      } else {
+        console.log('No investment entries found in Firebase');
+        return null;
+      }
+    } catch (error) {
+      this.syncStatusSubject.next('error');
+      console.error('Error loading investment entries from Firebase:', error);
+      throw error;
+    } finally {
+      if (this.syncStatusSubject.value !== 'error') {
+        this.syncStatusSubject.next('idle');
+      }
+    }
+  }
 }
