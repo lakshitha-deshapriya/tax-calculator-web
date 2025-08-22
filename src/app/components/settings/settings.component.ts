@@ -362,10 +362,13 @@ export class SettingsComponent implements OnInit {
   }
 
   onUpdateDistributionItem(index: number, field: keyof DistributionItem, value: any): void {
-    this.configService.updateDistributionItem(index, { [field]: value });
-    this.taxConfig.distributionItems = this.configService.getDistributionItems();
-    this.saveTaxConfig();
-    this.configChanged.emit();
+    // Update the item directly instead of reassigning the entire array
+    if (this.taxConfig.distributionItems[index]) {
+      (this.taxConfig.distributionItems[index] as any)[field] = value;
+      this.configService.updateDistributionItem(index, { [field]: value });
+      this.saveTaxConfig();
+      this.configChanged.emit();
+    }
   }
 
   onDeleteDistributionItem(index: number): void {
@@ -427,9 +430,13 @@ export class SettingsComponent implements OnInit {
   }
 
   onUpdateInvestmentMethod(methodId: string, field: keyof InvestmentMethod, value: any): void {
-    this.configService.updateInvestmentMethod(methodId, { [field]: value });
-    this.investmentConfig = this.configService.getInvestmentConfig();
-    this.configChanged.emit();
+    // Find and update the method directly instead of reassigning the entire config
+    const method = this.investmentConfig.investmentMethods.find(m => m.id === methodId);
+    if (method) {
+      (method as any)[field] = value;
+      this.configService.updateInvestmentMethod(methodId, { [field]: value });
+      this.configChanged.emit();
+    }
   }
 
   onDeleteInvestmentMethod(methodId: string): void {

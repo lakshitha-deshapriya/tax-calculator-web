@@ -118,13 +118,14 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
 
       const totalInvestmentTarget = epfAmount + etfAmount + selectedCategoriesAmount;
 
-      // Calculate method allocations (only for selected categories, EPF/ETF are separate)
+      // Calculate method allocations (based on total investment target, not just selected categories)
       const methodAllocations: { [methodId: string]: number } = {};
       const actualInvestments: { [methodId: string]: number } = {};
       const remainingToInvest: { [methodId: string]: number } = {};
 
       this.investmentConfig.investmentMethods.forEach(method => {
-        const allocation = (selectedCategoriesAmount * method.percentage) / 100;
+        // Allocate based on total investment target (EPF + ETF + selected categories)
+        const allocation = (totalInvestmentTarget * method.percentage) / 100;
         methodAllocations[method.id] = allocation;
 
         // Calculate actual investments for this month and method
