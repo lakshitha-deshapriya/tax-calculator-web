@@ -199,7 +199,8 @@ export class SettingsComponent implements OnInit {
 
     try {
       this.savingStatus.epfEtf = true;
-      await this.configService.saveEPFETFConfigurationToFirebase();
+      // Save the current UI values directly instead of reading from TaxConfig
+      await this.firebaseService.saveEPFETFConfiguration(this.epfRatePercentage, this.etfRatePercentage);
       console.log('EPF/ETF configuration saved to cloud');
     } catch (error) {
       console.error('Error saving EPF/ETF configuration to cloud:', error);
