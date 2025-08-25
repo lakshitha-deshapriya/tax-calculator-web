@@ -52,9 +52,6 @@
 
     <!-- Navigation Tabs -->
     <div class="tab-navigation">
-      <button class="tab-button" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
-        Settings
-      </button>
       <button class="tab-button" [class.active]="activeTab === 'salary'" (click)="setActiveTab('salary')">
         Salary Management
       </button>
@@ -65,6 +62,9 @@
       <button *ngIf="isAdmin" class="tab-button" [class.active]="activeTab === 'distribution'"
         (click)="setActiveTab('distribution')" title="Admin Only: Salary Distribution Analysis">
         Salary Distribution
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+        Settings
       </button>
     </div>
 

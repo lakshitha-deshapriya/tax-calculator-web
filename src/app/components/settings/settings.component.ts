@@ -55,15 +55,15 @@ export class SettingsComponent implements OnInit {
   savingStatus: {
     basic: boolean;
     tax: boolean;
-    epfEtf: boolean;
-    distribution: boolean;
+    epfEtfDistribution: boolean;
     investment: boolean;
+    resetAll: boolean;
   } = {
     basic: false,
     tax: false,
-    epfEtf: false,
-    distribution: false,
-    investment: false
+    epfEtfDistribution: false,
+    investment: false,
+    resetAll: false
   };
 
   constructor(
@@ -204,6 +204,33 @@ export class SettingsComponent implements OnInit {
   }
 
   /**
+   * Save EPF/ETF and Distribution configuration to Firebase (combined)
+   */
+  async saveEPFETFAndDistributionToCloud(): Promise<void> {
+    if (!this.isCloudSyncAvailable()) {
+      alert('Please sign in to save to cloud');
+      return;
+    }
+
+    try {
+      this.savingStatus.epfEtfDistribution = true;
+      
+      // Save EPF/ETF configuration
+      await this.firebaseService.saveEPFETFConfiguration(this.epfRatePercentage, this.etfRatePercentage);
+      
+      // Save distribution configuration
+      await this.configService.saveDistributionConfigurationToFirebase();
+      
+      console.log('EPF/ETF and Distribution configuration saved to cloud');
+    } catch (error) {
+      console.error('Error saving EPF/ETF and Distribution configuration to cloud:', error);
+      alert('Failed to save to cloud. Please try again.');
+    } finally {
+      this.savingStatus.epfEtfDistribution = false;
+    }
+  }
+
+  /**
    * Save EPF/ETF configuration to Firebase
    */
   async saveEPFETFToCloud(): Promise<void> {
@@ -213,7 +240,7 @@ export class SettingsComponent implements OnInit {
     }
 
     try {
-      this.savingStatus.epfEtf = true;
+      this.savingStatus.epfEtfDistribution = true;
       // Save the current UI values directly instead of reading from TaxConfig
       await this.firebaseService.saveEPFETFConfiguration(this.epfRatePercentage, this.etfRatePercentage);
       console.log('EPF/ETF configuration saved to cloud');
@@ -221,7 +248,7 @@ export class SettingsComponent implements OnInit {
       console.error('Error saving EPF/ETF configuration to cloud:', error);
       alert('Failed to save to cloud. Please try again.');
     } finally {
-      this.savingStatus.epfEtf = false;
+      this.savingStatus.epfEtfDistribution = false;
     }
   }
 
@@ -235,14 +262,14 @@ export class SettingsComponent implements OnInit {
     }
 
     try {
-      this.savingStatus.distribution = true;
+      this.savingStatus.epfEtfDistribution = true;
       await this.configService.saveDistributionConfigurationToFirebase();
       console.log('Distribution configuration saved to cloud');
     } catch (error) {
       console.error('Error saving distribution configuration to cloud:', error);
       alert('Failed to save to cloud. Please try again.');
     } finally {
-      this.savingStatus.distribution = false;
+      this.savingStatus.epfEtfDistribution = false;
     }
   }
 
@@ -267,91 +294,7 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  /**
-   * Sync all data to cloud (comprehensive backup)
-   */
-  async syncAllToCloud(): Promise<void> {
-    if (!this.isCloudSyncAvailable()) {
-      alert('Please sign in to sync to cloud');
-      return;
-    }
 
-    try {
-      this.savingStatus = {
-        basic: true,
-        tax: true,
-        epfEtf: true,
-        distribution: true,
-        investment: true
-      };
-
-      // Force save current config using unified storage (will save to cloud)
-      await this.unifiedStorageService.saveTaxConfig(this.taxConfig);
-      console.log('✅ All data synced to cloud via unified storage');
-      alert('All data synced to cloud successfully!');
-      
-    } catch (error) {
-      console.error('❌ Failed to sync all data to cloud:', error);
-      alert('Failed to sync to cloud. Please try again.');
-    } finally {
-      this.savingStatus = {
-        basic: false,
-        tax: false,
-        epfEtf: false,
-        distribution: false,
-        investment: false
-      };
-    }
-  }
-
-  /**
-   * Load all data from cloud
-   */
-  async loadAllFromCloud(): Promise<void> {
-    if (!this.isCloudSyncAvailable()) {
-      alert('Please sign in to load from cloud');
-      return;
-    }
-
-    if (!confirm('This will overwrite your current settings with data from cloud. Continue?')) {
-      return;
-    }
-
-    try {
-      this.savingStatus = {
-        basic: true,
-        tax: true,
-        epfEtf: true,
-        distribution: true,
-        investment: true
-      };
-
-      // Force reload from cloud using unified storage
-      const mergedConfig = await this.unifiedStorageService.forceReloadFromCloud();
-      if (mergedConfig) {
-        // Update the taxConfig to reflect the merged data
-        this.taxConfig = mergedConfig;
-        this.loadCurrentConfiguration();
-        this.configChanged.emit();
-        console.log('✅ All data loaded from cloud via unified storage');
-        alert('Data loaded from cloud successfully!');
-      } else {
-        alert('No data found in cloud');
-      }
-      
-    } catch (error) {
-      console.error('❌ Failed to load data from cloud:', error);
-      alert('Failed to load from cloud. Please try again.');
-    } finally {
-      this.savingStatus = {
-        basic: false,
-        tax: false,
-        epfEtf: false,
-        distribution: false,
-        investment: false
-      };
-    }
-  }
 
   /**
    * Check if Firebase is available and user is signed in
@@ -394,24 +337,7 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  /**
-   * Get sync status icon
-   */
-  getSyncStatusIcon(): string {
-    switch (this.syncStatus) {
-      case 'saving':
-      case 'loading':
-        return '⏳';
-      case 'error':
-        return '❌';
-      case 'idle':
-      default:
-        if (this.isCloudSyncAvailable()) {
-          return '☁️';
-        }
-        return '💾';
-    }
-  }
+
 
   // ========================================
   // EPF/ETF CONFIGURATION METHODS
@@ -563,18 +489,71 @@ export class SettingsComponent implements OnInit {
     return this.configService.isInvestmentMethodPercentageValid();
   }
 
+  /**
+   * Reset all configurations to default and save to cloud
+   */
+  async resetAllToDefault(): Promise<void> {
+    if (!confirm('Are you sure you want to reset ALL settings to default? This will overwrite all your custom configurations.')) {
+      return;
+    }
+
+    try {
+      this.savingStatus.resetAll = true;
+      
+      // Reset to default values
+      this.taxConfig.defaultSalaryDate = '01';
+      this.taxConfig.defaultCurrency = 'LKR';
+      this.epfRatePercentage = 8;
+      this.etfRatePercentage = 3;
+      
+      // Reset tax brackets to default
+      this.taxConfig.taxBrackets = this.taxConfigService.getDefaultTaxBrackets();
+      
+      // Reset distribution items to default
+      this.taxConfig.distributionItems = this.taxConfigService.getDefaultDistributionItems();
+      
+      // Reset investment configuration to default
+      const currentConfig = this.configService.getInvestmentConfig();
+      currentConfig.targetInvestmentCategories = [];
+      currentConfig.investmentMethods = [];
+      this.configService.setInvestmentConfig(currentConfig);
+      this.investmentConfig = this.configService.getInvestmentConfig();
+      
+      // Save all configurations locally first
+      this.taxConfigService.saveTaxConfig(this.taxConfig);
+      
+      // Save to cloud if available
+      if (this.isCloudSyncAvailable()) {
+        await Promise.all([
+          this.configService.saveBasicConfigurationToFirebase(),
+          this.configService.saveTaxConfigurationToFirebase(),
+          this.firebaseService.saveEPFETFConfiguration(this.epfRatePercentage, this.etfRatePercentage),
+          this.configService.saveDistributionConfigurationToFirebase(),
+          this.configService.saveInvestmentConfigurationToFirebase()
+        ]);
+        console.log('All configurations reset to default and saved to cloud');
+      } else {
+        console.log('All configurations reset to default (local only)');
+      }
+      
+      // Emit change event to update parent components
+      this.configChanged.emit();
+      
+      alert('All settings have been reset to default values!');
+      
+    } catch (error) {
+      console.error('Error resetting configurations:', error);
+      alert('Failed to reset configurations. Please try again.');
+    } finally {
+      this.savingStatus.resetAll = false;
+    }
+  }
+
   // ========================================
   // UTILITY METHODS
   // ========================================
 
-  onResetAllToDefault(): void {
-    if (confirm('Are you sure you want to reset ALL settings to default? This will remove all custom configurations.')) {
-      this.configService.resetAllToDefault();
-      this.taxConfig = this.taxConfigService.loadTaxConfig() || this.taxConfigService.getDefaultTaxConfig();
-      this.loadCurrentConfiguration();
-      this.configChanged.emit();
-    }
-  }
+
 
   getColorClass(index: number): string {
     const colors = ['red', 'blue', 'green', 'orange', 'purple'];

@@ -51,6 +51,20 @@
   transform: scale(1.1);
 }
 
+/* Header Actions Container */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Header Sync Button - Smaller version for headers */
+.header-sync-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
 .section-content {
   padding: 1.25rem;
 }

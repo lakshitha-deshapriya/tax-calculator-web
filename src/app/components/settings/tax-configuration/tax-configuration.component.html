@@ -2,7 +2,20 @@
 <div class="settings-section">
   <div class="section-header" (click)="toggleSection()">
     <h2>{{ showTaxBrackets ? '📊' : '📋' }} Tax Bracket Configuration</h2>
-    <button class="toggle-btn">{{ showTaxBrackets ? '−' : '+' }}</button>
+    <div class="header-actions">
+      <!-- Cloud Sync Button for Tax Configuration -->
+      <button 
+        *ngIf="showTaxBrackets && isCloudSyncAvailable()"
+        class="sync-btn btn-primary header-sync-btn" 
+        (click)="saveTaxToCloud(); $event.stopPropagation()"
+        [disabled]="savingToCloud"
+        title="Save tax configuration to cloud"
+      >
+        <span *ngIf="!savingToCloud">☁️ Save Tax Config to Cloud</span>
+        <span *ngIf="savingToCloud">⏳ Saving...</span>
+      </button>
+      <button class="toggle-btn">{{ showTaxBrackets ? '−' : '+' }}</button>
+    </div>
   </div>
   
   <div class="section-content" *ngIf="showTaxBrackets">
@@ -119,19 +132,6 @@
           Add Tax Bracket
         </button>
       </div>
-    </div>
-
-    <!-- Cloud Sync Button for Tax Configuration -->
-    <div class="cloud-sync-controls" *ngIf="isCloudSyncAvailable()">
-      <button 
-        class="sync-btn btn-primary" 
-        (click)="saveTaxToCloud()"
-        [disabled]="savingToCloud"
-        title="Save tax configuration to cloud"
-      >
-        <span *ngIf="!savingToCloud">☁️ Save Tax Config to Cloud</span>
-        <span *ngIf="savingToCloud">⏳ Saving...</span>
-      </button>
     </div>
   </div>
 </div>
