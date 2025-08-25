@@ -57,9 +57,11 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    this.loadInvestmentConfig();
+    console.log('💰 InvestmentsViewComponent initialized - checking if this causes Firebase calls');
+    await this.loadInvestmentConfig();
     await this.loadInvestmentEntries();
     this.calculateInvestmentSummaries();
+    console.log('💰 InvestmentsViewComponent initialization complete');
   }
 
   ngOnChanges(): void {
@@ -67,15 +69,34 @@ export class InvestmentsViewComponent implements OnInit, OnChanges {
   }
 
   // Configuration Management
-  loadInvestmentConfig(): void {
-    // This still uses ConfigurationService for investment methods and categories
-    // The main tax config data (EPF/ETF, salary entries) comes from parent component
-    // which now uses UnifiedStorageService, so no Firebase calls are made here
-    this.investmentConfig = this.configService.getInvestmentConfig();
+  async loadInvestmentConfig(): Promise<void> {
+    console.log('💰 Loading investment config from UnifiedStorageService (with caching)');
+    try {
+      const config = await this.unifiedStorageService.loadInvestmentConfig();
+      if (config) {
+        this.investmentConfig = config;
+        console.log('💰 Investment config loaded from UnifiedStorageService');
+      } else {
+        // Fallback to default config via ConfigurationService
+        console.log('💰 No investment config found, loading default from ConfigurationService');
+        this.investmentConfig = this.configService.getInvestmentConfig();
+      }
+    } catch (error) {
+      console.error('💰 Error loading investment config from UnifiedStorageService:', error);
+      // Fallback to ConfigurationService
+      this.investmentConfig = this.configService.getInvestmentConfig();
+    }
   }
 
-  saveInvestmentConfig(): void {
-    this.configService.setInvestmentConfig(this.investmentConfig);
+  async saveInvestmentConfig(): Promise<void> {
+    try {
+      await this.unifiedStorageService.saveInvestmentConfig(this.investmentConfig);
+      console.log('💰 Investment config saved via UnifiedStorageService');
+    } catch (error) {
+      console.error('💰 Error saving investment config via UnifiedStorageService:', error);
+      // Fallback to ConfigurationService
+      this.configService.setInvestmentConfig(this.investmentConfig);
+    }
   }
 
   // Investment Entries Management

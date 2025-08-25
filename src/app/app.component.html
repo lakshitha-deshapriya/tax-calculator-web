@@ -82,25 +82,25 @@
     <main class="main-content">
 
       <!-- Settings Tab -->
-      <div *ngIf="activeTab === 'settings'" class="tab-content">
+      <div [hidden]="activeTab !== 'settings'" class="tab-content">
         <app-settings [taxConfig]="taxConfig" (configChanged)="onConfigChanged()">
         </app-settings>
       </div>
 
       <!-- Salary Management Tab -->
-      <div *ngIf="activeTab === 'salary'" class="tab-content">
+      <div [hidden]="activeTab !== 'salary'" class="tab-content">
         <app-salary-management [taxConfig]="taxConfig" (configChanged)="onConfigChanged()">
         </app-salary-management>
       </div>
 
       <!-- Tax Calculator Tab -->
-      <div *ngIf="activeTab === 'calculator'" class="tab-content">
+      <div [hidden]="activeTab !== 'calculator'" class="tab-content">
         <app-tax-calculator [taxConfig]="taxConfig">
         </app-tax-calculator>
       </div>
 
       <!-- Admin Only: Salary Distribution Tab -->
-      <div *ngIf="isDistributionTabVisible()" class="tab-content">
+      <div [hidden]="!isDistributionTabVisible()" class="tab-content">
         <app-salary-distribution></app-salary-distribution>
       </div>
     </main>

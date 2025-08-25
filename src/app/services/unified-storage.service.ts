@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { GoogleAuthService, User } from './google-auth.service';
 import { FirebaseService } from './firebase.service';
 import { TaxConfig, SalaryEntry, TaxBracket, DistributionItem } from '../models/tax-config.model';
+import { InvestmentConfig } from './configuration.service';
 
 export type StorageMode = 'cloud-session' | 'local' | 'guest';
 
@@ -22,6 +23,8 @@ export class UnifiedStorageService {
   private readonly LOCAL_KEY = 'tax-calculator-config';
   private readonly INVESTMENT_SESSION_KEY = 'tax-calculator-session-investments';
   private readonly INVESTMENT_LOCAL_KEY = 'tax-calculator-investments';
+  private readonly INVESTMENT_CONFIG_SESSION_KEY = 'tax-calculator-session-investment-config';
+  private readonly INVESTMENT_CONFIG_LOCAL_KEY = 'investment-config';
   
   private storageMode: StorageMode = 'guest';
   private currentUser: User | null = null;
@@ -526,5 +529,128 @@ export class UnifiedStorageService {
    */
   clearInvestmentEntriesSession(): void {
     sessionStorage.removeItem(this.INVESTMENT_SESSION_KEY);
+  }
+
+  // Investment Configuration Management
+  /**
+   * Save investment configuration using current storage strategy
+   */
+  async saveInvestmentConfig(config: InvestmentConfig): Promise<void> {
+    try {
+      if (this.storageMode === 'cloud-session') {
+        await this.saveInvestmentConfigToCloudAndSession(config);
+      } else {
+        // For 'local' and 'guest' modes, use localStorage
+        localStorage.setItem(this.INVESTMENT_CONFIG_LOCAL_KEY, JSON.stringify(config));
+      }
+    } catch (error) {
+      console.error('Error saving investment config:', error);
+      // Fallback to localStorage
+      localStorage.setItem(this.INVESTMENT_CONFIG_LOCAL_KEY, JSON.stringify(config));
+      throw error;
+    }
+  }
+
+  /**
+   * Load investment configuration using current storage strategy
+   */
+  async loadInvestmentConfig(): Promise<InvestmentConfig | null> {
+    console.log(`🎯 UnifiedStorageService: loadInvestmentConfig() called with mode: ${this.storageMode}`);
+    try {
+      if (this.storageMode === 'cloud-session') {
+        return await this.loadInvestmentConfigFromCloudAndCache();
+      } else {
+        // For 'local' and 'guest' modes, use localStorage
+        console.log('🎯 Loading investment config from localStorage for guest/local mode');
+        return this.loadInvestmentConfigFromLocal();
+      }
+    } catch (error) {
+      console.error('Error loading investment config:', error);
+      // Fallback to localStorage
+      return this.loadInvestmentConfigFromLocal();
+    }
+  }
+
+  /**
+   * Save investment configuration to cloud and cache in session
+   */
+  private async saveInvestmentConfigToCloudAndSession(config: InvestmentConfig): Promise<void> {
+    if (!this.currentUser) {
+      throw new Error('No user authenticated for cloud storage');
+    }
+
+    if (!this.firebaseService.isAvailable()) {
+      throw new Error('Firebase not available for cloud storage');
+    }
+
+    // Save to Firebase cloud storage
+    await this.firebaseService.saveInvestmentConfiguration(config);
+    console.log('🎯 Investment config saved to cloud storage');
+    
+    // Cache in session storage
+    sessionStorage.setItem(this.INVESTMENT_CONFIG_SESSION_KEY, JSON.stringify(config));
+    console.log('🎯 Investment config cached in session');
+  }
+
+  /**
+   * Load investment configuration from cloud and cache in session
+   */
+  private async loadInvestmentConfigFromCloudAndCache(): Promise<InvestmentConfig | null> {
+    // First check session cache
+    const sessionData = sessionStorage.getItem(this.INVESTMENT_CONFIG_SESSION_KEY);
+    if (sessionData) {
+      console.log('🎯 Loading investment config from session cache');
+      return JSON.parse(sessionData);
+    }
+
+    // If not in session, load from cloud
+    if (!this.firebaseService.isAvailable()) {
+      console.log('🎯 Firebase not available, falling back to localStorage');
+      return this.loadInvestmentConfigFromLocal();
+    }
+
+    try {
+      console.log('🎯 Loading investment config from cloud storage');
+      const cloudData = await this.firebaseService.loadInvestmentConfiguration();
+      
+      if (cloudData) {
+        // Cache in session
+        sessionStorage.setItem(this.INVESTMENT_CONFIG_SESSION_KEY, JSON.stringify(cloudData));
+        console.log('🎯 Investment config loaded from cloud and cached in session');
+        return cloudData;
+      }
+    } catch (error) {
+      console.error('🎯 Error loading investment config from cloud:', error);
+    }
+
+    // Fallback to localStorage if cloud fails
+    console.log('🎯 Falling back to localStorage');
+    const config = this.loadInvestmentConfigFromLocal();
+    
+    if (config) {
+      // Cache in session
+      sessionStorage.setItem(this.INVESTMENT_CONFIG_SESSION_KEY, JSON.stringify(config));
+      console.log('🎯 Investment config cached in session');
+    }
+
+    return config;
+  }
+
+  /**
+   * Load investment configuration from localStorage
+   */
+  private loadInvestmentConfigFromLocal(): InvestmentConfig | null {
+    const localData = localStorage.getItem(this.INVESTMENT_CONFIG_LOCAL_KEY);
+    if (localData) {
+      return JSON.parse(localData);
+    }
+    return null;
+  }
+
+  /**
+   * Clear investment configuration from session storage
+   */
+  clearInvestmentConfigSession(): void {
+    sessionStorage.removeItem(this.INVESTMENT_CONFIG_SESSION_KEY);
   }
 }

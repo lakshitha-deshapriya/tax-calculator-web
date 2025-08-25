@@ -45,15 +45,17 @@ export class SalaryDistributionComponent implements OnInit {
   ) { }
 
   async ngOnInit(): Promise<void> {
-    console.log('SalaryDistributionComponent initialized');
+    console.log('🏭 SalaryDistributionComponent initialized - this should only happen once per navigation');
     await this.loadTaxConfig();
     this.updateAvailableFinancialYears();
     this.calculateDistributions();
   }
 
   async loadTaxConfig(): Promise<void> {
+    console.log('🏭 SalaryDistributionComponent: Loading tax config via UnifiedStorageService');
     const config = await this.unifiedStorageService.loadTaxConfig();
     this.taxConfig = config || this.taxConfigService.getDefaultTaxConfig();
+    console.log('🏭 SalaryDistributionComponent: Tax config loaded');
   }
 
   async saveTaxConfig(): Promise<void> {
